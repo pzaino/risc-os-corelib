@@ -71,7 +71,7 @@ int main(void) {
     ASSERT_EQ(os_access(NULL, 0), -1, "os_access(NULL) must fail");
     ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
 
-    ASSERT_EQ(os_access("$.", 0), 0, "os_access(.) must succeed");
+    ASSERT_EQ(os_access("@", 0), 0, "os_access(.) must succeed");
 
     // os_lseek
     ASSERT_EQ(os_lseek(-1, 0, 0), -1, "os_lseek(-1) must fail");
