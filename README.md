@@ -19,6 +19,10 @@ LibOS is designed to be CLib independent, so it should be usable also when build
 
 This library has nothing to do with the RISC OS UnixLib and GCC, I created it at the time for Acorn/Castle/ROOL DDE. GCC and the UnixLib cover way more than libOS does.
 
+## License
+
+This library is licensed under the MPL 2.0. See the [LICENSE](LICENSE) file for details.
+
 ## Building
 
 To build the library, you need to have RISC OS development environment set up. When in the Desktop open the directory containing this library and double click on the `MkDDE` file.
