@@ -26,3 +26,5 @@ This library is licensed under the MPL 2.0. See the [LICENSE](LICENSE) file for 
 ## Building
 
 To build the library, you need to have RISC OS development environment set up. When in the Desktop open the directory containing this library and double click on the `MkDDE` file.
+
+To clean up a build and remove all the generated files, double click on the file called `MkCleanDDE`.
