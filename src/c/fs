@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "fs.h"
+#include "fcntl.h" // O_RDONLY, etc.
 
 #include <stdlib.h>
 #include <string.h>
@@ -173,10 +174,28 @@ int os_open(const char *path, int flags, int mode) {
         return -1;
     }
 
-    int action = (flags & 0x03) == 0 ? 0x40 : (flags & 0x03) == 1 ? 0x42 : 0x43;
+    int access = flags & O_ACCMODE;
     int handle = 0;
+    const _kernel_oserror *err = NULL;
 
-    const _kernel_oserror *err = _swix(OS_Find, _INR(0,1) | _OUT(0), action, path, &handle);
+    if ((flags & O_CREAT) && access == O_RDWR) {
+        // Try open RW first, if fails, create
+        err = _swix(OS_Find, _INR(0,1) | _OUT(0), 0xC0, path, &handle);
+        if (err) {
+            err = _swix(OS_Find, _INR(0,1) | _OUT(0), 0x80, path, &handle); // create
+        }
+    } else if ((flags & O_CREAT) && access == O_WRONLY) {
+        // RISC OS has no "WRONLY" — must use RW
+        err = _swix(OS_Find, _INR(0,1) | _OUT(0), 0x80, path, &handle);
+    } else if (access == O_RDWR) {
+        err = _swix(OS_Find, _INR(0,1) | _OUT(0), 0xC0, path, &handle);
+    } else if (access == O_RDONLY) {
+        err = _swix(OS_Find, _INR(0,1) | _OUT(0), 0x40, path, &handle);
+    } else {
+        errno = EINVAL;
+        return -1;
+    }
+
     if (err) {
         errno = os_map_error(err->errnum);
         return -1;
