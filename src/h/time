@@ -1,0 +1,32 @@
+#ifndef __LIBOS_TIME_H__
+#define __LIBOS_TIME_H__
+
+#ifdef __CC_NORCROFT
+#pragma include_only_once
+#endif
+
+typedef long time_t;
+
+typedef struct timeval {
+    long tv_sec;  /* seconds */
+    long tv_usec; /* microseconds */
+} timeval;
+
+typedef struct timespec {
+    long tv_sec;  /* seconds */
+    long tv_nsec; /* nanoseconds */
+} timespec;
+
+time_t os_time(time_t *t);
+int os_set_time(time_t t);
+int os_stime(time_t t);
+
+int os_gettimeofday(struct timeval *tv, void *tz);
+int os_clock_gettime(int clk_id, struct timespec *tp);
+
+unsigned int os_sleep(unsigned int seconds);
+int os_nanosleep(const struct timespec *req, struct timespec *rem);
+
+
+
+#endif /* __LIBOS_TIME_H__ */

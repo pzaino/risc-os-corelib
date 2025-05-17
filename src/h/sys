@@ -1,0 +1,27 @@
+#ifndef __LIBOS_SYS_H__
+#define __LIBOS_SYS_H__
+
+#ifdef __CC_NORCROFT
+#pragma include_only_once
+#endif
+
+#include <stddef.h>
+
+typedef struct os_utsname {
+    char sysname[32];
+    char nodename[32];
+    char release[32];
+    char version[32];
+    char machine[32];
+} os_utsname;
+
+int os_uname(struct os_utsname *name);
+int os_gethostname(char *name, size_t len);
+
+int os_getuid(void);
+int os_geteuid(void);
+int os_getgid(void);
+int os_getegid(void);
+char *os_getlogin(void); 
+
+#endif /* __LIBOS_SYS_H__ */

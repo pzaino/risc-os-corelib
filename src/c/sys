@@ -1,0 +1,69 @@
+/* sys.c - System information wrappers for RISC OS SWIs (libOS) */
+
+#include "common.h"
+#include "sys.h"
+
+#include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+
+// Get the system name and version
+int os_uname(struct os_utsname *name) {
+    if (!name) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    static char version[256];
+
+    const _kernel_oserror *err = _swix(OS_ReadVarVal,
+                                       _INR(0, 4) | _OUT(1),
+                                       "OSVersion",   // r0: variable name
+                                       version,       // r1: output buffer
+                                       sizeof(version), // r2: buffer size
+                                       0x01,          // r3: return string
+                                       0);            // r4: flags
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    // Populate uname fields with defaults
+    strncpy(name->sysname,  "RISCOS",   sizeof(name->sysname) - 1);
+    strncpy(name->nodename, "localhost",sizeof(name->nodename) - 1);
+    strncpy(name->release,  version,    sizeof(name->release) - 1);
+    strncpy(name->version,  version,    sizeof(name->version) - 1);
+    strncpy(name->machine,  "ARM",      sizeof(name->machine) - 1);
+
+    // Ensure NUL termination
+    name->sysname[sizeof(name->sysname) - 1]   = '\0';
+    name->nodename[sizeof(name->nodename) - 1] = '\0';
+    name->release[sizeof(name->release) - 1]   = '\0';
+    name->version[sizeof(name->version) - 1]   = '\0';
+    name->machine[sizeof(name->machine) - 1]   = '\0';
+
+    return 0;
+}
+
+// Get hostname (same as nodename from uname)
+int os_gethostname(char *name, size_t len) {
+    if (!name || len == 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    strncpy(name, "localhost", len - 1);
+    name[len - 1] = '\0';
+    return 0;
+}
+
+// Return UID/GID info — RISC OS is single-user, always root-equivalent
+int os_getuid(void)    { return 0; }
+int os_geteuid(void)   { return 0; }
+int os_getgid(void)    { return 0; }
+int os_getegid(void)   { return 0; }
+
+// Return user login name — fixed on RISC OS
+char *os_getlogin(void) {
+    return "riscos";
+}

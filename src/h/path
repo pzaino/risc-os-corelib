@@ -1,0 +1,18 @@
+#ifndef __LIBOS_PATH_H__
+#define __LIBOS_PATH_H__
+
+#ifdef __CC_NORCROFT
+#pragma include_only_once
+#endif
+
+#include <stddef.h>
+
+int os_path_is_absolute(const char *path);
+char *os_path_join(const char *a, const char *b, char *out, size_t maxlen);
+const char *os_path_basename(const char *path);
+char *os_path_dirname(const char *path, char *out, size_t maxlen);
+char *os_path_to_riscos(const char *unix_path, char *out, size_t maxlen);
+char *os_path_to_unix(const char *riscos_path, char *out, size_t maxlen);
+
+
+#endif /* __LIBOS_PATH_H__ */

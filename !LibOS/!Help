@@ -1,0 +1,32 @@
+---------------------------------------------------------------
+- Lib OS for RISC OS
+- by Paolo Fabio Zaino 1998-2025
+---------------------------------------------------------------
+
+_ Release 1.0.0 rc 1 _
+
+-----------------------
+-  DISCLAIMER  -
+-----------------------
+
+This is a library i wrote many years ago to make my life easier
+when coding in C on RISC OS on my RiscPC. It is not meant to be
+something as complete as UnixLib and the GCC project for RISC
+OS, instead is a simple ANSI C99 that re-implements all typical
+RISC OS SWIs as a POSIX-like library making it more intuitive
+to use the RISC OS API and also somewhat more reliable given
+the library does quite a bit of arguments check that RISC OS
+SWI API doesn't do.
+
+-----------------------
+-  Intro  -
+-----------------------
+
+
+
+---------------
+- FINAL NOTES -
+---------------
+Thanks for using my Open Source work, and, most of all, thanks for coding on RISC OS :)
+
+- Paolo

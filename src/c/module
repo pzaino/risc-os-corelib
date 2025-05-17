@@ -1,0 +1,83 @@
+/* module.c - RISC OS module management wrappers for libriscos */
+
+#include "common.h"
+#include "module.h"
+
+#include <string.h>
+#include <stdlib.h>
+
+// Load a module from file (returns handle or NULL)
+void *os_module_load(const char *filename) {
+    if (!filename || *filename == '\0') {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    void *base = NULL;
+
+    const _kernel_oserror *err = _swix(OS_Module,
+                                       _IN(0) | _IN(1) | _OUT(4),
+                                       2,       // reason: load from file
+                                       filename,
+                                       &base);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return NULL;
+    }
+
+    return base;
+}
+
+// Unload a module by name
+int os_module_unload(const char *name) {
+    if (!name || *name == '\0') {
+        errno = EINVAL;
+        return -1;
+    }
+
+    const _kernel_oserror *err = _swix(OS_Module,
+                                       _IN(0) | _IN(1),
+                                       3,        // reason: delete module
+                                       name);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    return 0;
+}
+
+// Ensure a module is loaded (returns 0 if present, -1 if missing)
+int os_module_ensure(const char *name) {
+    if (!name || *name == '\0') {
+        errno = EINVAL;
+        return -1;
+    }
+
+    const _kernel_oserror *err = _swix(OS_Module,
+                                       _INR(0,2),
+                                       0,      // reason: return module info
+                                       name,
+                                       0);     // reserved
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    return 0;
+}
+
+// Enumerate loaded modules (pass NULL to start from beginning)
+const char *os_module_list(const char *prev) {
+    static char name[256];
+
+    const _kernel_oserror *err = _swix(OS_Module,
+                                       _INR(0,2) | _OUT(1),
+                                       0,        // reason: get next module
+                                       name,
+                                       prev ? prev : 0,
+                                       name);
+    if (err) return NULL;
+
+    return name;
+}

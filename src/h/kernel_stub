@@ -1,0 +1,103 @@
+#ifndef __LIBOS_KSTUB_H__
+#define __LIBOS_KSTUB_H__
+
+// Host development stub for kernel.h / swis.h compatibility
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+// RISC OS SWI register block
+typedef struct _kernel_swi_regs {
+    int r[10];  // SWI arguments and results
+} _kernel_swi_regs;
+
+// RISC OS error block
+typedef struct _kernel_oserror {
+    int errnum;
+    const char *errmess;
+} _kernel_oserror;
+
+// Simulated SWI call (used for _kernel_swi fallback)
+static inline _kernel_oserror *_kernel_swi(int swi_number,
+                                           _kernel_swi_regs *in,
+                                           _kernel_swi_regs *out)
+{
+    (void)swi_number;
+    (void)in;
+    (void)out;
+
+    static int toggle = 0;
+    toggle = (toggle + 1) % 2;
+
+    if (toggle) {
+        _kernel_oserror *err = malloc(sizeof(_kernel_oserror));
+        if (!err) return NULL;
+        err->errnum = 0xDEADBEEF;
+        err->errmess = "Simulated SWI error";
+        return err;
+    }
+
+    if (out && in) {
+        memcpy(out, in, sizeof(_kernel_swi_regs));
+    }
+
+    return NULL;
+}
+
+// Simulated _swix() and _swixr() APIs
+#define _INR(n1, n2) (0)
+#define _OUTR(n1, n2) (0)
+#define _IN(n) (0)
+#define _OUT(n) (0)
+
+// Simulated _swix (no effect on inputs, alternates error/success)
+static inline _kernel_oserror *_swix(int swi_number, int flags, ...)
+{
+    (void)swi_number;
+    (void)flags;
+    static int toggle = 0;
+    toggle = (toggle + 1) % 2;
+
+    if (toggle) {
+        _kernel_oserror *err = malloc(sizeof(_kernel_oserror));
+        if (!err) return NULL;
+        err->errnum = 0xBADC0DE;
+        err->errmess = "Simulated _swix() error";
+        return err;
+    }
+
+    return NULL;
+}
+
+#define _swixr _swix // Dummy fallback
+
+// Dummy SWI number placeholders for host compilation
+#define OS_WriteC              0x00000001
+#define OS_ReadC               0x00000002
+#define OS_WriteS              0x00000003
+#define OS_Byte                0x00000004
+#define OS_File                0x00000005
+#define OS_Args                0x00000006
+#define OS_Find                0x00000007
+#define OS_ReadLine            0x00000008
+#define OS_GBPB                0x00000009
+#define OS_FSControl           0x0000000A
+#define OS_GetEnv              0x0000000B
+#define OS_SetVarVal           0x0000000C
+#define OS_ReadVarVal          0x0000000D
+#define OS_ReadMonotonicTime   0x0000000E
+#define OS_WriteMonotonicTime  0x0000000F
+#define OS_CLI                 0x00000010
+#define OS_ServiceCall         0x00000011
+#define OS_AddCallBack         0x00000012
+#define OS_Module              0x00000013
+#define OS_Heap                0x00000014
+#define OS_CallASWI            0x00000015
+#define OS_CallASWIR12         0x00000016
+#define OS_Event               0x00000017
+#define OS_UpCall              0x00000018
+#define OS_Release             0x00000019
+#define OS_Claim               0x0000001A
+
+#endif // __LIBOS_KSTUB_H__

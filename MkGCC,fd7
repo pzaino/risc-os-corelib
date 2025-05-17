@@ -1,0 +1,42 @@
+| Generic Library builder for GCC on RISC OS
+| by Paolo Fabio Zaino
+
+echo ++++++++++++++++++++++++
+echo ++ Building using GCC ++
+echo ++++++++++++++++++++++++
+
+Set Build$Root <Obey$Dir>
+
+WimpSlot -min 16384K
+
+echo ---------------------
+echo Building the Library:
+echo ---------------------
+
+Dir <Build$Root>.src
+IfThere @.o Then IfThere @.o.* Then Wipe @.o.* ~C ~V
+make all THROWBACK=-throwback -f MakeFileGCC
+
+|IfThere @.libzvector/a Then copy @.libzvector/a @.^.!LibZVector.a.libzvector ~C N
+|IfThere @.libzvector/so/* Then copy @.libzvector/so/* @.^.LibZVector.so.* ~C N
+|IfThere @.h.libzvector Then copy @.h.ezini @.^.!LibEzINI.h.ezini ~C N
+Ifthere @.h.zvector Then copy @.h.zvector @.^.!LibZVector.h.zvector ~C N
+Ifthere @.h.zvector_checks Then copy @.h.zvector_checks @.^.!LibZVector.h.zvector_checks ~C N
+Ifthere @.h.zvector_config Then copy @.h.zvector_config @.^.!LibZVector.h.zvector_config ~C N
+
+echo
+echo ---------------------
+echo
+
+echo ---------------------
+echo Building Tests:
+echo ---------------------
+
+Dir <Build$Root>.tests
+make all THROWBACK=-throwback -f MakeFileGCC
+
+echo
+echo ---------------------
+echo
+
+Dir <Build$Root>

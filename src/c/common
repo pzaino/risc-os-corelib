@@ -1,0 +1,50 @@
+/* common.c - Common functions and helpers (libOS) */
+
+#include "common.h"
+
+// Basic mapping table from common RISC OS error numbers to errno values.
+// This is just a starting point; more error numbers should be added based on documentation.
+int os_map_error(int errnum) {
+    switch (errnum) {
+        case 0x1E6:  // Bad file name
+        case 0x1E7:  // File not found
+        case 0x1E8:  // Path not found
+            return ENOENT;
+
+        case 0x1E9:  // Too many open files
+            return EMFILE;
+
+        case 0x1EA:  // File exists
+            return EEXIST;
+
+        case 0x1EB:  // Disk full
+            return ENOSPC;
+
+        case 0x1EC:  // Access denied
+            return EACCES;
+
+        case 0x1ED:  // Invalid handle
+            return EBADF;
+
+        case 0x1EE:  // Not a directory
+            return ENOTDIR;
+
+        case 0x1EF:  // Is a directory
+            return EISDIR;
+
+        case 0x200:  // Argument out of range
+        case 0x201:  // Invalid argument
+            return EINVAL;
+
+        case 0x203:  // Device not ready
+            return EIO;
+
+        case 0x204:  // No such device
+            return ENODEV;
+
+        // Add more mappings as needed from PRMs
+
+        default:
+            return EIO; // Generic fallback
+    }
+}

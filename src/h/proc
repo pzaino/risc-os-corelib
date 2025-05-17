@@ -1,0 +1,17 @@
+#ifndef __LIBOS_PROC_H__
+#define __LIBOS_PROC_H__
+
+#ifdef __CC_NORCROFT
+#pragma include_only_once
+#endif
+
+int os_getpid(void);
+int os_getppid(void);
+char *os_getenv(const char *name);
+int os_setenv(const char *name, const char *value, int overwrite);
+int os_system(const char *command);
+int os_fork(void);
+int os_execvp(const char *file, char *const argv[]);
+int os_unsetenv(const char *name);
+
+#endif /* __LIBOS_PROC_H__ */

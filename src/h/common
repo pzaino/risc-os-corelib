@@ -1,0 +1,41 @@
+#ifndef __LIBOS_COMMON_H__
+#define __LIBOS_COMMON_H__
+
+#ifdef __CC_NORCROFT
+#pragma include_only_once
+#pragma force_top_level
+#endif
+
+#ifdef __CC_NORCROFT
+#include <kernel.h>
+#include <swis.h>
+#else
+#include "kernel_stub.h"
+#endif
+#include <errno.h>
+
+#ifndef ENOTSUP
+#define ENOTSUP 95
+#endif
+#define EINVAL 22
+#define ENOENT 2
+#define ENOSPC 28
+#define EMFILE 24
+#define EEXIST 17
+#define EACCES 13
+#define EBADF 9
+#define ENOTDIR 20
+#define EISDIR 21
+#define EIO 5
+#define ENODEV 19
+#define EBUSY 16
+#define EMLINK 31
+#define EDEADLOCK 35
+#ifndef ENAMETOOLONG
+#define ENAMETOOLONG 36
+#endif
+#define ENOMEM 12
+
+int os_map_error(int errnum);
+
+#endif /* __LIBOS_COMMON_H__ */

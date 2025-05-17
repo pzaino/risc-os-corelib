@@ -1,0 +1,12 @@
+#ifndef __LIBOS_BYTE_H__
+#define __LIBOS_BYTE_H__
+
+#ifdef __CC_NORCROFT
+#pragma include_only_once
+#endif
+
+int os_byte(int reason, int in_x, int in_y, int *out_x, int *out_y);
+int os_set_key_repeat(int delay, int rate);
+int os_keyboard_status(void);
+
+#endif /* __LIBOS_BYTE_H__ */

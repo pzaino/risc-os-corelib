@@ -1,0 +1,148 @@
+/* path.c - Path manipulation helpers for RISC OS (libriscos) */
+
+#include "common.h"
+#include "path.h"
+
+#include <string.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+// Check if a path is absolute (starts with $)
+int os_path_is_absolute(const char *path) {
+    return (path && path[0] == '$');
+}
+
+// Join two paths with '.' separator if needed
+char *os_path_join(const char *a, const char *b, char *out, size_t maxlen) {
+    if (!a || !b || !out || maxlen == 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    size_t len_a = strlen(a);
+    size_t len_b = strlen(b);
+    int need_sep = (len_a > 0 && a[len_a - 1] != '.');
+
+    // Compute required length
+    size_t needed = len_a + len_b + (need_sep ? 1 : 0) + 1;
+    if (needed > maxlen) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    // Compose output
+    strcpy(out, a);
+    if (need_sep) strcat(out, ".");
+    strcat(out, b);
+    return out;
+}
+
+// Extract basename from path (after last '.')
+const char *os_path_basename(const char *path) {
+    if (!path) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    const char *last = strrchr(path, '.');
+    return last ? last + 1 : path;
+}
+
+// Extract dirname from path into output buffer
+char *os_path_dirname(const char *path, char *out, size_t maxlen) {
+    if (!path || !out || maxlen == 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    const char *last = strrchr(path, '.');
+    if (!last) {
+        // No separator found: treat as current dir
+        if (maxlen < 2) {
+            errno = ENAMETOOLONG;
+            return NULL;
+        }
+        strcpy(out, ".");
+        return out;
+    }
+
+    size_t len = last - path;
+    if (len >= maxlen) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    strncpy(out, path, len);
+    out[len] = '\0';
+    return out;
+}
+
+// Convert Unix-style path (/foo/bar) to RISC OS-style ($.foo.bar)
+char *os_path_to_riscos(const char *unix_path, char *out, size_t maxlen) {
+    if (!unix_path || !out || maxlen == 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    size_t i = 0;
+    if (unix_path[0] == '/') {
+        if (maxlen < 3) {
+            errno = ENAMETOOLONG;
+            return NULL;
+        }
+        out[i++] = '$';
+        out[i++] = '.';
+        unix_path++; // Skip leading slash
+    }
+
+    for (; i < maxlen - 1 && *unix_path; ++unix_path) {
+        if (*unix_path == '/') {
+            out[i++] = '.';
+        } else {
+            out[i++] = *unix_path;
+        }
+    }
+
+    if (*unix_path != '\0') {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    out[i] = '\0';
+    return out;
+}
+
+// Convert RISC OS-style path ($.foo.bar) to Unix-style (/foo/bar)
+char *os_path_to_unix(const char *riscos_path, char *out, size_t maxlen) {
+    if (!riscos_path || !out || maxlen == 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    size_t i = 0;
+    if (riscos_path[0] == '$' && riscos_path[1] == '.') {
+        if (maxlen < 2) {
+            errno = ENAMETOOLONG;
+            return NULL;
+        }
+        out[i++] = '/';
+        riscos_path += 2;
+    }
+
+    for (; i < maxlen - 1 && *riscos_path; ++riscos_path) {
+        if (*riscos_path == '.') {
+            out[i++] = '/';
+        } else {
+            out[i++] = *riscos_path;
+        }
+    }
+
+    if (*riscos_path != '\0') {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    out[i] = '\0';
+    return out;
+}

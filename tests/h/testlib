@@ -1,0 +1,40 @@
+#ifndef TESTLIB_H
+#define TESTLIB_H
+
+#ifdef __CC_NORCROFT
+#pragma include_only_once
+#pragma force_top_level
+
+#define EINVAL 22
+#endif
+
+#include <errno.h>
+
+// Replaceable printf-less assertion macro
+#define ASSERT_EQ(x, y, msg) \
+    do { if ((x) != (y)) { \
+        write_string("FAIL: "); \
+        write_string(msg); \
+        write_string("\n"); \
+        failures++; \
+    }} while (0)
+
+// Optional: could add more like ASSERT_NE, ASSERT_OK, etc.
+void write_string(const char *s);
+
+void write_string(const char *s) {
+    if (!s) return;
+    #ifdef __CC_NORCROFT
+    #define XOS_WriteS 0x20001
+    __asm 
+    {
+        MOV a1, s
+        SWI (XOS_WriteS), {a1}, {}, {PSR}
+    }
+    #else
+    #include <stdio.h>
+    puts(s);
+    #endif
+}
+
+#endif // TESTLIB_H

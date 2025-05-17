@@ -1,0 +1,16 @@
+#include "libOS:fs.h"
+#include "../testlib.h"
+#include "main.h"
+
+int failures = 0;
+
+int main(void) {
+    os_stat_t st;
+
+    ASSERT_EQ(os_stat(NULL, &st), -1, "os_stat(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+
+    if (failures == 0)
+        write_string("PASS: fs module\n");
+    return failures;
+}

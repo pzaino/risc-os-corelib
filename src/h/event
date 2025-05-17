@@ -1,0 +1,12 @@
+#ifndef __LIBOS_EVENT_H__
+#define __LIBOS_EVENT_H__
+
+#ifdef __CC_NORCROFT
+#pragma include_only_once
+#endif
+
+int os_event_claim(int event_number, void (*handler)(int, void *), void *pw);
+int os_event_release(int event_number, void (*handler)(int, void *), void *pw);
+int os_event_generate(int event_number, int data, int x, int y);
+
+#endif /* __LIBOS_EVENT_H__ */

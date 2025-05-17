@@ -1,0 +1,16 @@
+#ifndef __LIBOS_TERM_H__
+#define __LIBOS_TERM_H__
+
+#ifdef __CC_NORCROFT
+#pragma include_only_once
+#endif
+
+int os_putchar(int c);
+int os_getchar(void);
+int os_isatty(int fd);
+int os_tcgetattr(int fd, void *termios_p);
+int os_tcsetattr(int fd, int optional_actions, const void *termios_p);
+const char *os_ttyname(int fd);
+
+
+#endif /* __LIBOS_TERM_H__ */

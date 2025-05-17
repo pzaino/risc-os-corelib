@@ -1,0 +1,9 @@
+Dir <Obey$Dir>.src
+WimpSlot -min 2048k
+amu clean -f MakeFileDDE
+stripdepnd MakeFileDDE
+wipe @.^.!LibOS.h.* ~C F
+wipe @.^.!LibOS.o.* ~C F
+
+
+

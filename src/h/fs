@@ -1,0 +1,46 @@
+#ifndef __LIBOS_FS_H__
+#define __LIBOS_FS_H__
+
+#ifdef __CC_NORCROFT
+#pragma include_only_once
+#endif
+
+#include <stddef.h>
+
+// Replacement for struct stat using only types available in ANSI C
+typedef struct os_stat_t {
+    unsigned int st_size;
+    unsigned int st_mtime;
+    int st_mode;
+} os_stat_t;
+
+typedef struct os_dir_t {
+    int context;
+    char path[256];
+    char entry[256];
+} os_dir_t;
+
+typedef struct os_dirent_t {
+    char d_name[256];
+} os_dirent_t;
+
+int os_mkdir(const char *path, int mode);
+int os_rmdir(const char *path);
+int os_chdir(const char *path);
+char *os_getcwd(char *buf, size_t size);
+int os_unlink(const char *path);
+int os_rename(const char *oldpath, const char *newpath);
+int os_stat(const char *path, struct os_stat_t *st);
+int os_access(const char *pathname, int mode);
+
+int os_open(const char *path, int flags, int mode);
+int os_close(int fd);
+int os_read(int fd, void *buf, size_t count);
+int os_write(int fd, const void *buf, size_t count);
+long os_lseek(int fd, long offset, int whence);
+
+void os_rewinddir(os_dir_t *dirp);
+long os_telldir(os_dir_t *dirp);
+void os_seekdir(os_dir_t *dirp, long loc);
+
+#endif /* __LIBOS_FS_H__ */

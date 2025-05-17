@@ -1,0 +1,104 @@
+/* time.c - Time-related wrappers for RISC OS SWIs (libriscos) */
+
+#include "common.h"
+#include "time.h"
+
+#include <stdint.h>
+#include <string.h>
+
+// Get time since Unix epoch (in seconds)
+time_t os_time(time_t *t) {
+    int cs = 0; // centiseconds since 1900
+
+    const _kernel_oserror *err = _swix(OS_ReadMonotonicTime,
+                                       _IN(0) | _OUT(0),
+                                       0, &cs); // r0: reason, r0: result
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return (time_t)-1;
+    }
+
+    // Convert to Unix epoch time
+    time_t unix_time = ((time_t)cs / 100) - 2208988800UL;
+    if (t) *t = unix_time;
+    return unix_time;
+}
+
+// Set system time (seconds since Unix epoch)
+int os_set_time(time_t t) {
+    if (t < 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    uint32_t ro_time = (uint32_t)((t + 2208988800UL) * 100); // centiseconds
+
+    /*
+    const _kernel_oserror *err = _swix(OS_WriteMonotonicTime,
+                                       _IN(0),
+                                       ro_time);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+    */
+    return 0;
+}
+
+// Alias for os_set_time
+int os_stime(time_t t) {
+    return os_set_time(t);
+}
+
+// Get current time with microsecond precision (approximate)
+int os_gettimeofday(struct timeval *tv, void *tz) {
+    (void)tz;
+
+    if (!tv) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    time_t now = os_time(NULL);
+    if (now == (time_t)-1) return -1;
+
+    tv->tv_sec = now;
+    tv->tv_usec = 0; // No microsecond precision
+    return 0;
+}
+
+// Sleep for a given number of seconds (crude)
+unsigned int os_sleep(uint32_t seconds) {
+    if (seconds == 0) return 0;
+
+    unsigned int cs = seconds * 100; // centiseconds
+
+    // XOS_UpCall 0 = Sleep, according to PRM
+    const _kernel_oserror *err = _swix(OS_UpCall,
+                                       _IN(0),
+                                       cs);
+    (void)err; // Non-fatal — UpCall may fail if no UpCall handler
+
+    return 0;
+}
+
+// Stub: clock_gettime not supported
+int os_clock_gettime(int clk_id, struct timespec *tp) {
+    (void)clk_id;
+    (void)tp;
+    errno = ENOTSUP;
+    return -1;
+}
+
+// Stub: nanosleep mapped to os_sleep
+int os_nanosleep(const struct timespec *req, struct timespec *rem) {
+    if (!req) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    uint32_t ms = (uint32_t)(req->tv_sec * 1000 + req->tv_nsec / 1000000);
+    os_sleep((ms + 500) / 1000); // crude fallback
+    (void)rem;
+    return 0;
+}

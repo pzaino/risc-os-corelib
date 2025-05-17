@@ -1,0 +1,12 @@
+# Makefile for libOS Library using DDE
+
+COMPONENT = libOS
+
+# This is a list of source/object files for the library
+OBJS = common byte env event fs heap mem module path proc service sys term time
+
+include CLibrary
+cflags+=-Wp+g
+#-Ospace
+
+# Dynamic dependencies:

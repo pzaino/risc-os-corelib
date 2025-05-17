@@ -1,0 +1,118 @@
+/* mem.c - Memory management wrappers for RISC OS SWIs (libriscos) */
+
+#include "common.h"
+#include "mem.h"
+
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+
+// Allocate a block of memory using OS_Module 6 (Allocate)
+void *os_malloc(size_t size) {
+    if (size == 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    void *ptr = NULL;
+
+    const _kernel_oserror *err = _swix(OS_Module,
+                                       _INR(0,2) | _OUT(2),
+                                       6,             // Reason: allocate
+                                       size,
+                                       0,             // flags
+                                       &ptr);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return NULL;
+    }
+
+    return ptr;
+}
+
+// Free memory using OS_Module 7 (Free)
+void os_free(void *ptr) {
+    if (!ptr) return;
+
+    const _kernel_oserror *err = _swix(OS_Module,
+                                       _INR(0,1),
+                                       7,             // Reason: free
+                                       ptr);
+    if (err) {
+        errno = os_map_error(err->errnum);
+    }
+}
+
+// Get amount of free memory using OS_Heap (approximate)
+long os_mem_free(void) {
+    int free_bytes = 0;
+
+    const _kernel_oserror *err = _swix(OS_Heap,
+                                       _IN(0) | _OUT(2),
+                                       0,           // Reason: query
+                                       &free_bytes);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    return free_bytes;
+}
+
+// Allocate and zero-initialize memory
+void *os_calloc(size_t nmemb, size_t size) {
+    if (nmemb == 0 || size == 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    size_t total = nmemb * size;
+
+    // Check for overflow
+    if (size != 0 && total / size != nmemb) {
+        errno = ENOMEM;
+        return NULL;
+    }
+
+    void *ptr = os_malloc(total);
+    if (ptr) {
+        memset(ptr, 0, total);
+    }
+
+    return ptr;
+}
+
+// Resize memory block — safe wrapper
+void *os_realloc(void *ptr, size_t size) {
+    if (!ptr) return os_malloc(size);
+    if (size == 0) {
+        os_free(ptr);
+        return NULL;
+    }
+
+    void *newptr = os_malloc(size);
+    if (!newptr) return NULL;
+
+    // WARNING: No way to know old size — safe but possibly inefficient
+    memcpy(newptr, ptr, size);
+    os_free(ptr);
+    return newptr;
+}
+
+// POSIX-aligned allocation stub
+int os_posix_memalign(void **memptr, size_t alignment, size_t size) {
+    if (!memptr || alignment == 0 || (alignment & (alignment - 1)) != 0) {
+        return EINVAL;
+    }
+
+    *memptr = NULL;
+    return ENOTSUP;
+}
+
+// C11 aligned allocation stub
+void *os_aligned_alloc(size_t alignment, size_t size) {
+    (void)alignment;
+    (void)size;
+    errno = ENOTSUP;
+    return NULL;
+}

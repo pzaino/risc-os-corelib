@@ -1,0 +1,85 @@
+/* heap.c - Heap control wrappers for RISC OS SWIs (libriscos) */
+
+#include "common.h"
+#include "heap.h"
+
+#include <stddef.h>
+
+// Return amount of free space in the system heap
+long os_heap_free(void) {
+    int free_space = 0;
+
+    const _kernel_oserror *err = _swix(OS_Heap,
+                                       _IN(0) | _OUT(2),
+                                       0,       // reason: query heap
+                                       &free_space);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    return (long)free_space;
+}
+
+// Create a named heap — support may be implementation-specific
+int os_heap_create(const char *name, int size, int flags) {
+    (void)flags; // not used by standard RISC OS Heap manager
+
+    if (!name || *name == '\0' || size <= 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    const _kernel_oserror *err = _swix(OS_Heap,
+                                       _INR(0,2),
+                                       1,         // reason: create named heap
+                                       name,
+                                       size);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    return 0;
+}
+
+// Allocate memory from heap
+void *os_heap_alloc(int size) {
+    if (size <= 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    void *ptr = NULL;
+
+    const _kernel_oserror *err = _swix(OS_Heap,
+                                       _IN(0) | _IN(1) | _OUT(2),
+                                       2,     // reason: allocate block
+                                       size,
+                                       &ptr);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return NULL;
+    }
+
+    return ptr;
+}
+
+// Free memory back to heap
+int os_heap_free_block(void *ptr) {
+    if (!ptr) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    const _kernel_oserror *err = _swix(OS_Heap,
+                                       _INR(0,1),
+                                       3,     // reason: free block
+                                       ptr);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    return 0;
+}

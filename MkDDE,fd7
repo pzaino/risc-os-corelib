@@ -1,0 +1,42 @@
+| Generic Library builder for DDE on RISC OS
+| by Paolo Fabio Zaino
+
+echo ++++++++++++++++++++++++
+echo ++ Building using DDE ++
+echo ++++++++++++++++++++++++
+
+Set Build$Root <Obey$Dir>
+
+WimpSlot -min 6144K
+
+echo ---------------------
+echo Building the Library:
+echo ---------------------
+
+Dir <Build$Root>.src
+IfThere @.o Then IfThere @.o.* Then Wipe @.o.* ~C ~V
+amu all_libs THROWBACK=-throwback -f MakeFileDDE
+
+IfThere @.^.!LibOS.o Then Else cdir @.^.!LibOS.o
+IfThere @.^.!LibOS.h Then Else cdir @.^.!LibOS.h
+IfThere @.o.libOS   Then copy @.o.libOS   @.^.!LibOS.o.libOS ~C N
+Ifthere @.o.libOSzm Then copy @.o.libOSzm @.^.!LibOS.o.libOSzm ~C N
+Ifthere @.h.*       Then copy @.h.* @.^.!LibOS.h.* ~C N
+IfThere @.^.!LibOS.h.kernel_stub Then wipe @.^.!LibOS.h.kernel_stub ~C F
+
+echo
+echo ---------------------
+echo
+
+echo ---------------------
+echo Building Tests:
+echo ---------------------
+
+IfThere <Build$Root>.tests Then Dir <Build$Root>.tests
+IfThere <Build$Root>.tests.MakefileDDE Then make all THROWBACK=-throwback -f MakeFileDDE
+
+echo
+echo ---------------------
+echo
+
+Dir <Build$Root>

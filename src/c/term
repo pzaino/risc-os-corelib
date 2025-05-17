@@ -1,0 +1,63 @@
+/* term.c - Terminal I/O wrappers for RISC OS SWIs (libOS) */
+
+#include "common.h"
+#include "term.h"
+
+// Write a single character to the output stream (stdout)
+int os_putchar(int c) {
+    int ch = c & 0xFF;
+
+    const _kernel_oserror *err = _swix(OS_WriteC,
+                                       _IN(0),
+                                       ch);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    return ch;
+}
+
+// Read a single character from the input stream (stdin)
+int os_getchar(void) {
+    int result = 0;
+
+    const _kernel_oserror *err = _swix(OS_ReadC,
+                                       _OUT(0),
+                                       &result);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    return result & 0xFF;
+}
+
+// Determine if a file descriptor is a terminal
+int os_isatty(int fd) {
+    // On RISC OS, stdin=0, stdout=1, stderr=2 are always terminals
+    return (fd >= 0 && fd <= 2) ? 1 : 0;
+}
+
+// Stub implementation — termios API not available on RISC OS
+int os_tcgetattr(int fd, void *termios_p) {
+    (void)fd;
+    (void)termios_p;
+    errno = ENOTSUP;
+    return -1;
+}
+
+// Stub implementation — termios API not available on RISC OS
+int os_tcsetattr(int fd, int optional_actions, const void *termios_p) {
+    (void)fd;
+    (void)optional_actions;
+    (void)termios_p;
+    errno = ENOTSUP;
+    return -1;
+}
+
+// Return a fixed terminal name
+const char *os_ttyname(int fd) {
+    (void)fd;
+    return "tty";
+}

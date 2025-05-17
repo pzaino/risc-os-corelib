@@ -1,0 +1,106 @@
+/* env.c - Environment variable wrappers for RISC OS SWIs (libriscos) */
+
+#include "common.h"
+#include "env.h"
+
+#include <string.h>
+#include <stdlib.h>
+
+// Get environment variable value
+char *os_getenv(const char *name) {
+    if (!name || *name == '\0') {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    static char value[256];
+    const _kernel_oserror *err = _swix(OS_ReadVarVal,
+                                 _INR(0, 4) | _OUT(1),
+                                 name,              // r0 = variable name
+                                 value,             // r1 = output buffer
+                                 sizeof(value),     // r2 = output buffer size
+                                 0x01,              // r3 = return string
+                                 0);                // r4 = flags
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return NULL;
+    }
+
+    return value;
+}
+
+// Set environment variable
+int os_setenv(const char *name, const char *value, int overwrite) {
+    if (!name || *name == '\0' || !value) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (!overwrite && os_getenv(name)) {
+        return 0;
+    }
+
+    _kernel_oserror *err = _swix(OS_SetVarVal,
+                                 _INR(0, 2),
+                                 name,     // r0 = variable name
+                                 value,    // r1 = new value
+                                 0);       // r2 = normal (not system)
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    return 0;
+}
+
+// Unset (remove) an environment variable
+int os_unsetenv(const char *name) {
+    if (!name || *name == '\0') {
+        errno = EINVAL;
+        return -1;
+    }
+
+    _kernel_oserror *err = _swix(OS_SetVarVal,
+                                 _INR(0, 2),
+                                 name,     // r0 = variable name
+                                 "",       // r1 = empty string = unset
+                                 0);       // r2 = normal variable
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    return 0;
+}
+
+// Check if a variable exists (does not return its value)
+int os_env_exists(const char *name) {
+    if (!name || *name == '\0') {
+        errno = EINVAL;
+        return 0;
+    }
+
+    char tmp[1];
+    _kernel_oserror *err = _swix(OS_ReadVarVal,
+                                 _INR(0, 4) | _OUT(1),
+                                 name,
+                                 tmp,
+                                 sizeof(tmp),
+                                 0x01,  // Return string
+                                 0);
+    return err == NULL;
+}
+
+// Clear a predefined set of known environment variables (best-effort)
+int os_clearenv(void) {
+    static const char *known[] = {
+        "Alias$", "File$", "Inet$", "Inet$ResolvConf",
+        "Wimp$ScrapDir", "Run$", "App$", "Path$", NULL
+    };
+
+    for (int i = 0; known[i] != NULL; ++i) {
+        os_unsetenv(known[i]);
+    }
+
+    return 0;
+}

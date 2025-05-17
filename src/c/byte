@@ -1,0 +1,52 @@
+/* byte.c - OS_Byte interface wrappers for RISC OS (libOS) */
+
+#include "common.h"
+#include "byte.h"
+
+#include <stddef.h>
+
+// ----------------------------
+// Safer OS_Byte interface
+// ----------------------------
+
+// Validates the reason code for known usages
+static inline int is_valid_os_byte_reason(int reason) {
+    return (reason >= 0 && reason <= 255); // full documented range
+}
+
+int os_byte(int reason, int in_x, int in_y, int *out_x, int *out_y) {
+    if (!is_valid_os_byte_reason(reason)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    // Use _swix to make a clean, error-checking call
+    int x = 0, y = 0;
+    const _kernel_oserror *err = _swix(OS_Byte,
+                                        _INR(0,2) | _OUTR(1,2),
+                                        reason, in_x, in_y,
+                                        &x, &y);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    if (out_x) *out_x = x;
+    if (out_y) *out_y = y;
+    return 0;
+}
+
+int os_set_key_repeat(int delay, int rate) {
+    if (delay < 0 || delay > 255 || rate < 0 || rate > 255) {
+        errno = EINVAL;
+        return -1;
+    }
+    return os_byte(21, rate, delay, NULL, NULL);
+}
+
+int os_keyboard_status(void) {
+    int status = 0;
+    if (os_byte(202, 0, 0, &status, NULL) < 0)
+        return -1;
+    return status;
+}
