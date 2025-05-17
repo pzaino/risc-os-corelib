@@ -1,4 +1,4 @@
-/* env.c - Environment variable wrappers for RISC OS SWIs (libriscos) */
+/* env.c - Environment variable wrappers for RISC OS SWIs (libOS) */
 
 #include "common.h"
 #include "env.h"

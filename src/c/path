@@ -1,4 +1,4 @@
-/* path.c - Path manipulation helpers for RISC OS (libriscos) */
+/* path.c - Path manipulation helpers for RISC OS (libOS) */
 
 #include "common.h"
 #include "path.h"

@@ -1,4 +1,4 @@
-/* time.c - Time-related wrappers for RISC OS SWIs (libriscos) */
+/* time.c - Time-related wrappers for RISC OS SWIs (libOS) */
 
 #include "common.h"
 #include "time.h"

@@ -1,4 +1,4 @@
-/* module.c - RISC OS module management wrappers for libriscos */
+/* module.c - RISC OS module management wrappers for libOS */
 
 #include "common.h"
 #include "module.h"

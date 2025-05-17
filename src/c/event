@@ -1,4 +1,4 @@
-/* event.c - EventV claim/release wrappers for RISC OS (libriscos) */
+/* event.c - EventV claim/release wrappers for RISC OS (libOS) */
 
 #include "common.h"
 #include "event.h"
