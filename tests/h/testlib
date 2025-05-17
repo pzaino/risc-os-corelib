@@ -6,19 +6,56 @@
 #pragma force_top_level
 
 #define EINVAL 22
+#define EBADF 9
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 
-// Replaceable printf-less assertion macro
+// --- Assertions ---
 #define ASSERT_EQ(x, y, msg) \
     do { if ((x) != (y)) { \
-        write_string("FAIL: "); \
-        write_string(msg); \
-        write_string("\n"); \
+        write_string("FAIL: "); write_string(msg); write_string("\n"); \
         failures++; \
     }} while (0)
+
+#define ASSERT_NE(x, y, msg) \
+    do { if ((x) == (y)) { \
+        write_string("FAIL: "); write_string(msg); write_string("\n"); \
+        failures++; \
+    }} while (0)
+
+#define ASSERT_GT(x, y, msg) \
+    do { if ((x) <= (y)) { \
+        write_string("FAIL: "); write_string(msg); write_string("\n"); \
+        failures++; \
+    }} while (0)
+
+#define ASSERT_GE(x, y, msg) \
+    do { if ((x) < (y)) { \
+        write_string("FAIL: "); write_string(msg); write_string("\n"); \
+        failures++; \
+    }} while (0)
+
+#define ASSERT_LT(x, y, msg) \
+    do { if ((x) >= (y)) { \
+        write_string("FAIL: "); write_string(msg); write_string("\n"); \
+        failures++; \
+    }} while (0)
+
+#define ASSERT_LE(x, y, msg) \
+    do { if ((x) > (y)) { \
+        write_string("FAIL: "); write_string(msg); write_string("\n"); \
+        failures++; \
+    }} while (0)
+
+#define ASSERT_OK(x, msg) \
+    ASSERT_EQ((x), 0, msg)
+
+#define ASSERT_FAIL(x, msg) \
+    ASSERT_EQ((x), -1, msg)
 
 // Optional: could add more like ASSERT_NE, ASSERT_OK, etc.
 void write_string(const char *s);

@@ -31,13 +31,32 @@ int os_rmdir(const char *path) {
         return -1;
     }
 
-    const _kernel_oserror *err = _swix(OS_FSControl, _INR(0,1), 25, path); // Delete directory
+    os_stat_t st;
+    if (os_stat(path, &st) < 0)
+        return -1;
+
+    if ((st.st_mode & 0xF000) != 0x4000) { // Not a directory
+        errno = ENOTDIR;
+        return -1;
+    }
+
+    // Use OS_FSControl 27 with force bit set, no recurse
+    int flags = 0; 
+    flags |= 0x00000001; // Force delete
+
+
+    const _kernel_oserror *err = _swix(OS_FSControl, _INR(0,7),
+                                       27, path, flags, -1, -1, -1, -1);
+
     if (err) {
         errno = os_map_error(err->errnum);
         return -1;
     }
+
     return 0;
 }
+
+
 
 int os_chdir(const char *path) {
     if (!path || *path == '\0') {
@@ -101,18 +120,30 @@ int os_stat(const char *path, struct os_stat_t *st) {
         return -1;
     }
 
-    int r[10];
-    const _kernel_oserror *err = _swix(OS_File, _INR(0,1) | _OUTR(3,5),
-                                 23, path,
-                                 &r[3], &r[4], &r[5]);
+    int r[10];  // Use r[0] to r[6]
+    const _kernel_oserror *err = _swix(OS_File,
+        _INR(0,1) | _OUTR(0,6),
+        23, path,
+        &r[0], &r[1], &r[2], &r[3], &r[4], &r[5], &r[6]);
+
     if (err) {
         errno = os_map_error(err->errnum);
         return -1;
     }
 
-    st->st_mode = 0; // Placeholder
-    st->st_size = (unsigned int)r[3];
-    st->st_mtime = (unsigned int)r[5];
+    if (r[0] == 0) { // Object not found
+        errno = ENOENT;
+        return -1;
+    }
+
+    st->st_mode = 0;
+    if ((r[6] & 0xF000) == 0x1000)  // &1000 = directory/image
+        st->st_mode |= 0x4000;      // S_IFDIR placeholder
+    else
+        st->st_mode |= 0x8000;      // S_IFREG placeholder
+
+    st->st_size = (unsigned int)r[4];   // Length
+    st->st_mtime = (unsigned int)r[5]; // Attributes (often encodes timestamp-ish info)
     return 0;
 }
 
@@ -190,15 +221,21 @@ int os_write(int fd, const void *buf, size_t count) {
         return -1;
     }
 
-    int bytes_written = 0;
-    const _kernel_oserror *err = _swix(OS_GBPB, _INR(0,3) | _OUT(4),
-                                 1, fd, (void *)buf, count, &bytes_written);
+    int not_written = 0;
+    const _kernel_oserror *err = _swix(OS_GBPB,
+        _INR(0,3) | _OUT(3),
+        2, fd, (void *)buf, count,
+        &not_written);
+
     if (err) {
         errno = os_map_error(err->errnum);
         return -1;
     }
-    return bytes_written;
+
+    return count - not_written;
 }
+
+
 
 long os_lseek(int fd, long offset, int whence) {
     if (fd < 0) {

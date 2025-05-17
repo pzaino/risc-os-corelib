@@ -5,12 +5,102 @@
 int failures = 0;
 
 int main(void) {
+    char buf[256];
     os_stat_t st;
+    const char *tempfile = "@.tempfile";     
+    const char *tempdir  = "@.tempdir";
+    const char *nonexistent = "@.doesnotexist";
 
+    // os_stat - error path
     ASSERT_EQ(os_stat(NULL, &st), -1, "os_stat(NULL) must fail");
     ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
 
+    ASSERT_EQ(os_stat(nonexistent, &st), -1, "os_stat(nonexistent) must fail");
+
+    // os_mkdir + os_rmdir
+    ASSERT_EQ(os_mkdir(NULL, 0), -1, "os_mkdir(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+
+    ASSERT_EQ(os_mkdir(tempdir, 0), 0, "os_mkdir() must succeed");
+    ASSERT_EQ(os_stat(tempdir, &st), 0, "os_stat(tempdir) must succeed");
+    ASSERT_EQ(os_rmdir(tempdir), 0, "os_rmdir() must succeed");
+
+    // os_unlink (file)
+    ASSERT_EQ(os_unlink(NULL), -1, "os_unlink(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+
+    // Create + write + stat
+    int fd = os_open(tempfile, 1, 0); // write
+    ASSERT_NE(fd, -1, "os_open(write) must succeed");
+
+    const char *msg = "Hello RISC OS\n";
+    ASSERT_EQ(os_write(fd, msg, strlen(msg)), strlen(msg), "os_write must succeed");
+
+    ASSERT_EQ(os_close(fd), 0, "os_close must succeed");
+    ASSERT_EQ(os_stat(tempfile, &st), 0, "os_stat(tempfile) must succeed");
+
+    // Read it back
+    fd = os_open(tempfile, 0, 0); // read
+    ASSERT_NE(fd, -1, "os_open(read) must succeed");
+
+    char readbuf[256] = {0};
+    int r = os_read(fd, readbuf, sizeof(readbuf));
+    ASSERT_GT(r, 0, "os_read must return positive byte count");
+
+    ASSERT_EQ(os_close(fd), 0, "os_close must succeed");
+    ASSERT_EQ(os_unlink(tempfile), 0, "os_unlink must succeed");
+
+    // os_rename
+    ASSERT_EQ(os_rename(NULL, "B"), -1, "os_rename(NULL, B) must fail");
+    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+
+    // os_getcwd
+    ASSERT_EQ(os_getcwd(NULL, 0), NULL, "os_getcwd(NULL, 0) must fail");
+    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+
+    ASSERT_NE(os_getcwd(buf, sizeof(buf)), NULL, "os_getcwd must succeed");
+
+    // os_chdir
+    ASSERT_EQ(os_chdir(NULL), -1, "os_chdir(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+
+    ASSERT_EQ(os_chdir(buf), 0, "os_chdir(getcwd) must succeed");
+
+    // os_access
+    ASSERT_EQ(os_access(NULL, 0), -1, "os_access(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+
+    ASSERT_EQ(os_access("$.", 0), 0, "os_access(.) must succeed");
+
+    // os_lseek
+    ASSERT_EQ(os_lseek(-1, 0, 0), -1, "os_lseek(-1) must fail");
+    ASSERT_EQ(errno, EBADF, "errno must be EBADF");
+
+    ASSERT_EQ(os_lseek(0, 0, 42), -1, "os_lseek invalid whence must fail");
+    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+
+    // Directory context tests (rewind/tell/seek)
+    os_dir_t dir = {0};
+    os_rewinddir(&dir);
+    ASSERT_EQ(dir.context, 0, "os_rewinddir should set context to 0");
+
+    os_seekdir(&dir, 42);
+    ASSERT_EQ(dir.context, 42, "os_seekdir should set context");
+
+    ASSERT_EQ(os_telldir(&dir), 42, "os_telldir should match seekdir");
+
+    os_seekdir(NULL, 1);
+    ASSERT_EQ(errno, EINVAL, "os_seekdir(NULL) must fail");
+
+    os_rewinddir(NULL);
+    ASSERT_EQ(errno, EINVAL, "os_rewinddir(NULL) must fail");
+
+    ASSERT_EQ(os_telldir(NULL), -1, "os_telldir(NULL) must fail");
+
     if (failures == 0)
         write_string("PASS: fs module\n");
+    else
+        write_string("FAIL: fs module\n");
+
     return failures;
 }
