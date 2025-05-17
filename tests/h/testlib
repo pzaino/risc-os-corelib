@@ -8,6 +8,7 @@
 #define EINVAL 22
 #endif
 
+#include <stdio.h>
 #include <errno.h>
 
 // Replaceable printf-less assertion macro
@@ -24,17 +25,7 @@ void write_string(const char *s);
 
 void write_string(const char *s) {
     if (!s) return;
-    #ifdef __CC_NORCROFT
-    #define XOS_WriteS 0x20001
-    __asm 
-    {
-        MOV a1, s
-        SWI (XOS_WriteS), {a1}, {}, {PSR}
-    }
-    #else
-    #include <stdio.h>
     puts(s);
-    #endif
 }
 
 #endif // TESTLIB_H

@@ -7,7 +7,3 @@ include CApp
 LIBS = LibOS:o.libOS
 
 # Dynamic dependencies:
-o.main:	c.main
-o.main:	libOS:h.fs
-o.main:	^.h.testlib
-o.main:	h.main
