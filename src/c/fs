@@ -1,11 +1,33 @@
+/*
+ * libOS - POSIX-like and SWI-safe C Library for RISC OS
+ *
+ * File: env.c
+ * Author: Paolo Fabio Zaino
+ * License: Mozilla Public License 2.0 (MPL-2.0)
+ *
+ * Description:
+ *   This file is part of libOS, a safe and portable ANSI C99 library that
+ *   provides POSIX-style APIs for RISC OS. It wraps RISC OS SWIs with strict
+ *   validation and aims to be CLib-independent while enabling safe development
+ *   of applications, kernel modules, and system utilities.
+ *
+ *   This source code is licensed under the terms of the Mozilla Public License
+ *   Version 2.0. You may obtain a copy of the license at:
+ *   https://www.mozilla.org/MPL/2.0/
+ *
+ *   SPDX-License-Identifier: MPL-2.0
+ */
+
 /* fs.c - File system wrappers for RISC OS SWIs (libOS) */
 
 #include "common.h"
 #include "fs.h"
 #include "fcntl.h" // O_RDONLY, etc.
+#include "path.h" // for os_realpath, os_path_join etc.
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 // ----------------------------
 // File and Directory Operations
@@ -135,9 +157,9 @@ int os_stat(const char *path, struct os_stat_t *st) {
 
     int r[10];  // Use r[0] to r[6]
     const _kernel_oserror *err = _swix(OS_File,
-        _INR(0,1) | _OUTR(0,6),
-        23, path,
-        &r[0], &r[1], &r[2], &r[3], &r[4], &r[5], &r[6]);
+                                        _INR(0,1) | _OUTR(0,6),
+                                        23, path,
+                                        &r[0], &r[1], &r[2], &r[3], &r[4], &r[5], &r[6]);
 
     if (err) {
         errno = os_map_error(err->errnum);
@@ -158,6 +180,51 @@ int os_stat(const char *path, struct os_stat_t *st) {
     st->st_size = (unsigned int)r[4];   // Length
     st->st_mtime = (unsigned int)r[5]; // Attributes (often encodes timestamp-ish info)
     return 0;
+}
+
+// returns an matrix of open files paths
+char *os_get_open_files_list(void) {
+    static char open_files[256][256];
+    int count = 0;
+    for (int i = 0; i < 256; i++) {
+        int chars = 0;
+        const _kernel_oserror *err = _swix(OS_Args, _INR(0,3) | _OUT(2),
+                                           7, i, open_files[i], sizeof(open_files[i]), &chars);
+        (void)err; // Ignore errors, just stop if no more open files
+        if (chars == 0) break; // No more open files
+        open_files[i][chars] = '\0'; // null-terminate the path safely
+        count++;
+    }
+    return *open_files; // Return the list of open files
+}
+
+// Retrieve file status from a file descriptor
+int os_stat_fd(int fd, os_stat_t *st) {
+    if (fd < 0 || !st) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    char path[256] = {0};
+    int spare = 0;
+
+    const _kernel_oserror *err = _swix(OS_Args,
+                                        _INR(0,2) | _IN(5) | _OUT(5),
+                                        7, fd, path, sizeof(path), &spare);
+
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    int used = sizeof(path) - spare;
+    if (used <= 0 || used >= (int)sizeof(path)) {
+        errno = ENAMETOOLONG;
+        return -1;
+    }
+
+    path[used] = '\0'; // Safe null-termination
+    return os_stat(path, st);
 }
 
 // Check if a file exists and is accessible
@@ -194,8 +261,10 @@ int os_set_filetype(const char *path, int filetype) {
         return -1;
     }
 
+    filetype &= 0xFFF; // Ensure it's strictly 12-bit
+
     const _kernel_oserror *err = _swix(OS_File, _INR(0,2),
-        18, path, (filetype << 8)); // filetype in top 3 bytes of load addr
+        18, path, filetype); // filetype in top 3 bytes of load addr
     if (err) {
         errno = os_map_error(err->errnum);
         return -1;
@@ -204,24 +273,32 @@ int os_set_filetype(const char *path, int filetype) {
     return 0;
 }
 
-// (RISC OS only) Get the filetype of a file
 int os_get_filetype(const char *path, int *filetype) {
     if (!path || *path == '\0' || !filetype) {
         errno = EINVAL;
         return -1;
     }
 
-    int type = 0;
-    const _kernel_oserror *err = _swix(OS_File, _INR(0,1) | _OUT(0),
-        23, path, &type);
+    int r[10]; // Enough to hold r0–r6
+    const _kernel_oserror *err = _swix(OS_File,
+        _INR(0,1) | _OUTR(0,6),
+        23, path,
+        &r[0], &r[1], &r[2], &r[3], &r[4], &r[5], &r[6]);
+
     if (err) {
         errno = os_map_error(err->errnum);
         return -1;
     }
 
-    *filetype = (type >> 8) & 0xFFF; // Extract filetype
+    if (r[0] == 0) {
+        errno = ENOENT;
+        return -1;
+    }
+
+    *filetype = r[6] & 0xFFF; // ensure 12-bit filetype
     return 0;
 }
+
 
 // (RISC OS only) Check if a file exists
 int os_file_exists(const char *path) {
@@ -260,15 +337,16 @@ int os_open(const char *path, int flags, int mode) {
     const _kernel_oserror *err = NULL;
 
     if ((flags & O_CREAT) && access == O_RDWR) {
-        // Try open RW first, if fails, create
         err = _swix(OS_Find, _INR(0,1) | _OUT(0), 0xC0, path, &handle);
         if (err) {
-            err = _swix(OS_Find, _INR(0,1) | _OUT(0), 0x80, path, &handle); // create
+            err = _swix(OS_Find, _INR(0,1) | _OUT(0), 0x80, path, &handle);
         }
     } else if ((flags & O_CREAT) && access == O_WRONLY) {
-        // RISC OS has no "WRONLY" — must use RW
-        err = _swix(OS_Find, _INR(0,1) | _OUT(0), 0x80, path, &handle);
+        err = _swix(OS_Find, _INR(0,1) | _OUT(0), 0x80, path, &handle); // create
     } else if (access == O_RDWR) {
+        err = _swix(OS_Find, _INR(0,1) | _OUT(0), 0xC0, path, &handle);
+    } else if (access == O_WRONLY) {
+        // MISSING CASE: open existing file RW, as WRONLY doesn't exist in RISC OS
         err = _swix(OS_Find, _INR(0,1) | _OUT(0), 0xC0, path, &handle);
     } else if (access == O_RDONLY) {
         err = _swix(OS_Find, _INR(0,1) | _OUT(0), 0x40, path, &handle);
@@ -299,6 +377,54 @@ int os_close(int fd) {
     }
     return 0;
 }
+
+// (RISC OS only) Close a file descriptor by matching its open path
+int os_close_path(const char *path) {
+    if (!path || *path == '\0') {
+        errno = EINVAL;
+        return -1;
+    }
+
+    // resolve the path to a full path
+    char full_path[256];
+    if (os_realpath(path, full_path, sizeof(full_path)) < 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    char buf[256];
+
+    for (int fd = 0; fd < 256; ++fd) {
+        buf[0] = '\0';
+
+        // Use OS_Args reason 7 to get path of open file handle
+        int name_len = 0;
+        const _kernel_oserror *err = _swix(OS_Args,
+                                            _INR(0,3) | _OUT(3),
+                                            7, fd, buf, sizeof(buf), &name_len);
+        if (err || buf[0] == '\0')
+            continue; // Skip invalid handles
+
+        // Defensive: normalise both paths before comparing
+        if (strcmp(buf, full_path) == 0) {
+            // Confirm the handle is valid before closing
+            int pos = 0;
+            err = _swix(OS_Args, _INR(0,1) | _OUT(2), 0, fd, &pos);
+            if (err) {
+                // Handle likely invalid; skip
+                continue;
+            }
+
+            // Close safely
+            return os_close(fd);
+        }
+    }
+
+    errno = ENOENT; // No matching open handle found
+    return -1;
+}
+
+
 
 // Read from a file descriptor into a buffer
 int os_read(int fd, void *buf, const size_t count) {
@@ -339,33 +465,45 @@ int os_write(int fd, const void *buf, const size_t count) {
 }
 
 // Seek to a specific position in a file descriptor
-// whence: 0 = SEEK_SET, 1 = SEEK_CUR
+// whence: 0 = SEEK_SET, 1 = SEEK_CUR, 2 = SEEK_END
 long os_lseek(int fd, long offset, int whence) {
     if (fd < 0) {
         errno = EBADF;
         return -1;
     }
 
-    if (whence != 0 && whence != 1) {
-        errno = EINVAL;
-        return -1;
-    }
+    int current = 0;
+    os_stat_t st;
 
-    if (whence == 1) {
-        int current = 0;
-        const _kernel_oserror *err = _swix(OS_Args, _INR(0,1) | _OUT(2), 0, fd, &current);
-        if (err) {
-            errno = os_map_error(err->errnum);
+    switch (whence) {
+        case SEEK_SET:
+            break;
+
+        case SEEK_CUR:
+            if (_swix(OS_Args, _INR(0,1) | _OUT(2), 0, fd, &current)) {
+                errno = EIO;
+                return -1;
+            }
+            offset += current;
+            break;
+
+        case SEEK_END:
+            if (os_stat_fd(fd, &st) < 0) {
+                return -1;
+            }
+            offset += st.st_size;
+            break;
+
+        default:
+            errno = EINVAL;
             return -1;
-        }
-        offset += current;
     }
 
-    const _kernel_oserror *err = _swix(OS_Args, _INR(0,2), 1, fd, offset);
-    if (err) {
-        errno = os_map_error(err->errnum);
+    if (_swix(OS_Args, _INR(0,2), 1, fd, offset)) {
+        errno = EIO;
         return -1;
     }
+
     return offset;
 }
 
@@ -592,20 +730,27 @@ int os_merge(const char *dest, const char *src) {
         return -1;
     }
 
+    if (strcmp(dest, src) == 0) {
+        errno = EINVAL; // Prevent merging a file into itself
+        return -1;
+    }
+
     char buf[1024];
     int r;
 
     int in = os_open(src, O_RDONLY, 0);
-    if (in < 0) return -1;
+    if (in < 0) {
+        return -1;
+    }
 
-    int out = os_open(dest, O_WRONLY | O_CREAT, 0);
+    int out = os_open(dest, O_RDWR, 0);
     if (out < 0) {
         os_close(in);
         return -1;
     }
 
     // Seek to end of destination
-    if (os_lseek(out, 0, 1) < 0) {
+    if (os_lseek(out, 0, 2) < 0) {
         os_close(in);
         os_close(out);
         return -1;
@@ -659,20 +804,21 @@ int os_split(const char *path, long offset, const char *out1, const char *out2) 
     }
 
     char buf[1024];
-    int total = 0, r;
+    long r;
+    int total = 0;
 
     // Write first part
-    while (total < offset && (r = os_read(in, buf, sizeof(buf))) > 0) {
-        int to_write = r;
-        if (total + r > offset) to_write = offset - total;
-        if (os_write(part1, buf, to_write) != to_write) {
+    while (((long)total < offset) && (r = os_read(in, buf, sizeof(buf))) > 0) {
+        size_t to_write = (size_t)r;
+        if (((long)(total + r)) > offset) to_write = (size_t)(offset - (long)total);
+        if (os_write(part1, buf, to_write) != (int)to_write) {
             errno = EIO;
             goto fail;
         }
         total += to_write;
         // buffer tail carry to second file if r > to_write
         if (to_write < r) {
-            if (os_write(part2, buf + to_write, r - to_write) != (r - to_write)) {
+            if (os_write(part2, buf + to_write, ((size_t)r) - to_write) != (r - to_write)) {
                 errno = EIO;
                 goto fail;
             }
@@ -682,7 +828,7 @@ int os_split(const char *path, long offset, const char *out1, const char *out2) 
 
     // Continue writing second part
     while ((r = os_read(in, buf, sizeof(buf))) > 0) {
-        if (os_write(part2, buf, r) != r) {
+        if (os_write(part2, buf, (size_t)r) != r) {
             errno = EIO;
             goto fail;
         }

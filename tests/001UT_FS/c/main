@@ -1,5 +1,12 @@
+#ifdef __CC_NORCROFT
+#include "libOS:common.h"
 #include "libOS:fs.h"
 #include "libOS:fcntl.h"
+#else
+#include "../../\!LibOS/h/common"
+#include "../../\!LibOS/h/fs"
+#include <fcntl.h>
+#endif
 #include "../test_lib.h"
 #include "main.h"
 
@@ -12,133 +19,286 @@ int main(void) {
     const char *tempdir  = "@.tempdir";
     const char *nonexistent = "@.does_not_exist";
 
-    // os_stat - error path
-    ASSERT_EQ(os_stat(NULL, &st), -1, "os_stat(NULL) must fail");
-    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+    // ----- Test os_stat and directories related functions -----
 
-    ASSERT_EQ(os_stat(nonexistent, &st), -1, "os_stat(nonexistent) must fail");
+    // os_stat - error path
+    ASSERT_EQ(os_stat(NULL, &st), -1, "T001: os_stat(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "T002: errno must be EINVAL");
+
+    ASSERT_EQ(os_stat(nonexistent, &st), -1, "T003: os_stat(nonexistent) must fail");
 
     // os_mkdir + os_rmdir
-    ASSERT_EQ(os_mkdir(NULL, 0), -1, "os_mkdir(NULL) must fail");
-    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+    ASSERT_EQ(os_mkdir(NULL, 0), -1, "T004: os_mkdir(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "T005: errno must be EINVAL");
 
-    ASSERT_EQ(os_mkdir(tempdir, 0), 0, "os_mkdir() must succeed");
-    ASSERT_EQ(os_stat(tempdir, &st), 0, "os_stat(tempdir) must succeed");
-    ASSERT_EQ(os_rmdir(tempdir), 0, "os_rmdir() must succeed");
+    ASSERT_EQ(os_mkdir(tempdir, 0), 0, "T006: os_mkdir() must succeed");
+    ASSERT_EQ(os_stat(tempdir, &st), 0, "T007: os_stat(tempdir) must succeed");
+    ASSERT_EQ(os_rmdir(tempdir), 0, "T008: os_rmdir() must succeed");
+
+    // ----- Test file operations -----
 
     // os_unlink (file)
-    ASSERT_EQ(os_unlink(NULL), -1, "os_unlink(NULL) must fail");
-    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+    ASSERT_EQ(os_unlink(NULL), -1, "T100: os_unlink(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "T101: errno must be EINVAL");
 
 
     // os_truncate
-    ASSERT_EQ(os_truncate(NULL, 0), -1, "os_truncate(NULL) must fail");
-    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+    ASSERT_EQ(os_truncate(NULL, 0), -1, "T102: os_truncate(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "T103: errno must be EINVAL");
 
     // Create a test file again
     int fd = os_open(tempfile, O_WRONLY | O_CREAT, 0);
-    ASSERT_NE(fd, -1, "os_open(write) must succeed");
+    ASSERT_NE(fd, -1, "T104: os_open(write) must succeed");
 
     const char *msg2 = "This is a long test string.";
     int msglen = strlen(msg2);
-    ASSERT_EQ(os_write(fd, msg2, msglen), msglen, "os_write(longer msg) must succeed");
-    ASSERT_EQ(os_close(fd), 0, "os_close must succeed");
+    ASSERT_EQ(os_write(fd, msg2, msglen), msglen, "T105: os_write(longer msg) must succeed");
+    ASSERT_EQ(os_close(fd), 0, "T106: os_close must succeed");
 
     // Truncate it to 5 bytes
-    ASSERT_EQ(os_truncate(tempfile, 5), 0, "os_truncate to 5 bytes must succeed");
+    ASSERT_EQ(os_truncate(tempfile, 5), 0, "T107: os_truncate to 5 bytes must succeed");
 
     // Stat to confirm new size
-    ASSERT_EQ(os_stat(tempfile, &st), 0, "os_stat after truncate must succeed");
-    ASSERT_EQ(st.st_size, 5, "os_stat.st_size should be 5");
+    ASSERT_EQ(os_stat(tempfile, &st), 0, "T108: os_stat after truncate must succeed");
+    ASSERT_EQ(st.st_size, 5, "T109: os_stat.st_size should be 5");
 
     // Reopen and read content
     fd = os_open(tempfile, O_RDONLY, 0);
-    ASSERT_NE(fd, -1, "os_open(read) after truncate must succeed");
+    ASSERT_NE(fd, -1, "T110: os_open(read) after truncate must succeed");
 
     char truncated[16] = {0};
     int r = os_read(fd, truncated, sizeof(truncated));
-    write_string("os_read returned: '");
-    write_string(truncated);
-    write_string("'\n");
-    ASSERT_EQ(r, 5, "os_read after truncate should return 5 bytes");
-    ASSERT_EQ(os_close(fd), 0, "os_close after read must succeed");
+    ASSERT_EQ(r, 5, "T111: os_read after truncate should return 5 bytes");
+    ASSERT_EQ(os_close(fd), 0, "T112: os_close after read must succeed");
 
     // Truncate again to longer size (expand)
-    ASSERT_EQ(os_truncate(tempfile, 20), 0, "os_truncate to 20 bytes must succeed");
-    ASSERT_EQ(os_stat(tempfile, &st), 0, "os_stat after expand must succeed");
-    ASSERT_EQ(st.st_size, 20, "os_stat.st_size should be 20");
+    ASSERT_EQ(os_truncate(tempfile, 20), 0, "T113: os_truncate to 20 bytes must succeed");
+    ASSERT_EQ(os_stat(tempfile, &st), 0, "T114: os_stat after expand must succeed");
+    ASSERT_EQ(st.st_size, 20, "T115: os_stat.st_size should be 20");
 
     // Clean up
-    ASSERT_EQ(os_unlink(tempfile), 0, "os_unlink after truncate must succeed");
+    ASSERT_EQ(os_unlink(tempfile), 0, "T116: os_unlink after truncate must succeed");
 
     
     // Create + write + stat
     fd = os_open(tempfile, O_WRONLY | O_CREAT, 0); // write
-    ASSERT_NE(fd, -1, "os_open(write) must succeed");
+    ASSERT_NE(fd, -1, "T117: os_open(write) must succeed");
 
     const char *msg = "Hello RISC OS\n";
-    ASSERT_EQ(os_write(fd, msg, strlen(msg)), strlen(msg), "os_write must succeed");
+    ASSERT_EQ(os_write(fd, msg, strlen(msg)), strlen(msg), "T118: os_write must succeed");
 
-    ASSERT_EQ(os_close(fd), 0, "os_close must succeed");
-    ASSERT_EQ(os_stat(tempfile, &st), 0, "os_stat(tempfile) must succeed");
+    ASSERT_EQ(os_close(fd), 0, "T120: os_close must succeed");
+    ASSERT_EQ(os_stat(tempfile, &st), 0, "T121: os_stat(tempfile) must succeed");
 
     // Read it back
     fd = os_open(tempfile, 0, 0); // read
-    ASSERT_NE(fd, -1, "os_open(read) must succeed");
+    ASSERT_NE(fd, -1, "T123: os_open(read) must succeed");
 
     char readbuf[256] = {0};
     r = os_read(fd, readbuf, sizeof(readbuf));
-    ASSERT_GT(r, 0, "os_read must return positive byte count");
+    ASSERT_GT(r, 0, "T124: os_read must return positive byte count");
 
-    ASSERT_EQ(os_close(fd), 0, "os_close must succeed");
-    ASSERT_EQ(os_unlink(tempfile), 0, "os_unlink must succeed");
+    ASSERT_EQ(os_close(fd), 0, "T125: os_close must succeed");
+    ASSERT_EQ(os_unlink(tempfile), 0, "T126: os_unlink must succeed");
 
     // os_rename
-    ASSERT_EQ(os_rename(NULL, "B"), -1, "os_rename(NULL, B) must fail");
+    ASSERT_EQ(os_rename(NULL, "B"), -1, "T127: os_rename(NULL, B) must fail");
     ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
 
     // os_getcwd
-    ASSERT_EQ(os_getcwd(NULL, 0), NULL, "os_getcwd(NULL, 0) must fail");
-    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+    ASSERT_EQ(os_getcwd(NULL, 0), NULL, "T128: os_getcwd(NULL, 0) must fail");
+    ASSERT_EQ(errno, EINVAL, "T129: errno must be EINVAL");
 
-    ASSERT_NE(os_getcwd(buf, sizeof(buf)), NULL, "os_getcwd must succeed");
+    ASSERT_NE(os_getcwd(buf, sizeof(buf)), NULL, "T130: os_getcwd must succeed");
 
     // os_chdir
-    ASSERT_EQ(os_chdir(NULL), -1, "os_chdir(NULL) must fail");
-    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+    ASSERT_EQ(os_chdir(NULL), -1, "T131: os_chdir(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "T132: errno must be EINVAL");
 
-    ASSERT_EQ(os_chdir(buf), 0, "os_chdir(getcwd) must succeed");
+    ASSERT_EQ(os_chdir(buf), 0, "T133: os_chdir(getcwd) must succeed");
 
     // os_access
-    ASSERT_EQ(os_access(NULL, 0), -1, "os_access(NULL) must fail");
-    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+    ASSERT_EQ(os_access(NULL, 0), -1, "T135: os_access(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "T136: errno must be EINVAL");
 
-    ASSERT_EQ(os_access("@", 0), 0, "os_access(.) must succeed");
+    ASSERT_EQ(os_access("@", 0), 0, "T137: os_access(.) must succeed");
 
     // os_lseek
-    ASSERT_EQ(os_lseek(-1, 0, 0), -1, "os_lseek(-1) must fail");
-    ASSERT_EQ(errno, EBADF, "errno must be EBADF");
+    ASSERT_EQ(os_lseek(-1, 0, 0), -1, "T138: os_lseek(-1) must fail");
+    ASSERT_EQ(errno, EBADF, "T139: errno must be EBADF");
 
-    ASSERT_EQ(os_lseek(0, 0, 42), -1, "os_lseek invalid whence must fail");
-    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+    ASSERT_EQ(os_lseek(0, 0, 42), -1, "T140: os_lseek invalid whence must fail");
+    ASSERT_EQ(errno, EINVAL, "T141: errno must be EINVAL");
 
-    // Directory context tests (rewind/tell/seek)
+    // ----- Directory context tests (rewind/tell/seek)
+
     os_dir_t dir = {0};
     os_rewinddir(&dir);
-    ASSERT_EQ(dir.context, 0, "os_rewinddir should set context to 0");
+    ASSERT_EQ(dir.context, 0, "T200: os_rewinddir should set context to 0");
 
     os_seekdir(&dir, 42);
-    ASSERT_EQ(dir.context, 42, "os_seekdir should set context");
+    ASSERT_EQ(dir.context, 42, "T201: os_seekdir should set context");
 
-    ASSERT_EQ(os_telldir(&dir), 42, "os_telldir should match seekdir");
+    ASSERT_EQ(os_telldir(&dir), 42, "T202: os_telldir should match seekdir");
 
     os_seekdir(NULL, 1);
-    ASSERT_EQ(errno, EINVAL, "os_seekdir(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "T203: os_seekdir(NULL) must fail");
 
     os_rewinddir(NULL);
-    ASSERT_EQ(errno, EINVAL, "os_rewinddir(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "T204: os_rewinddir(NULL) must fail");
 
-    ASSERT_EQ(os_telldir(NULL), -1, "os_telldir(NULL) must fail");
+    ASSERT_EQ(os_telldir(NULL), -1, "T205: os_telldir(NULL) must fail");
+
+    // ---- Directory Listing Tests ----
+    os_dir_t *dp = NULL;
+    os_dirent_t *ent = NULL;
+
+    // Error: NULL opendir
+    dp = os_opendir(NULL);
+    ASSERT_EQ(dp, NULL, "T300: os_opendir(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "T301: errno must be EINVAL");
+
+    // Valid opendir
+    dp = os_opendir("@");
+    ASSERT_NE(dp, NULL, "T302: os_opendir(@) must succeed");
+
+    // Read at least one entry
+    ent = os_readdir(dp);
+    ASSERT_NE(ent, NULL, "T303: os_readdir should return an entry");
+    ASSERT_NE(strlen(ent->d_name), 0, "T304: readdir d_name must not be empty");
+
+    // Read until NULL (EOF)
+    int entry_count = 0;
+    while ((ent = os_readdir(dp)) != NULL) {
+        entry_count++;
+        ASSERT_NE(strlen(ent->d_name), 0, "T305: entry name must not be empty");
+    }
+    ASSERT_GT(entry_count, 0, "T306: directory should have multiple entries");
+
+    // Close directory
+    ASSERT_EQ(os_closedir(dp), 0, "T307: os_closedir should succeed");
+
+    // Error: closedir(NULL)
+    ASSERT_EQ(os_closedir(NULL), -1, "T308: os_closedir(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "T309: errno must be EINVAL");
+
+    // --- Filetype Set/Get Tests ---
+    const char *ftest = "@.filetype_test";
+    int type_out = 0;
+
+    // Clean up if already exists
+    os_unlink(ftest);
+
+    // Create a file
+    fd = os_open(ftest, O_WRONLY | O_CREAT, 0);
+    ASSERT_NE(fd, -1, "T400: os_open(create) must succeed");
+    ASSERT_EQ(os_file_exists(ftest), 1, "T401: file must exist before set_filetype");
+
+    ASSERT_NE(fd, -1, "T402: os_open(create filetype_test) must succeed");
+    ASSERT_EQ(os_close(fd), 0, "T403: os_close must succeed");
+
+    // Set filetype to &FFF
+    ASSERT_EQ(os_set_filetype(ftest, 0xFFF), 0, "T404: os_set_filetype must succeed");
+
+    // Read back filetype
+    ASSERT_EQ(os_get_filetype(ftest, &type_out), 0, "T405: os_get_filetype must succeed");
+    ASSERT_EQ(type_out, 0xFFF, "T406: filetype must match 0xFFF");
+
+    // Error: invalid path
+    ASSERT_EQ(os_set_filetype(NULL, 0xFFF), -1, "T407: os_set_filetype(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "T408: errno must be EINVAL");
+
+    ASSERT_EQ(os_get_filetype(NULL, &type_out), -1, "T409: os_get_filetype(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "T410: errno must be EINVAL");
+
+    ASSERT_EQ(os_get_filetype(ftest, NULL), -1, "T411: os_get_filetype(null-out) must fail");
+    ASSERT_EQ(errno, EINVAL, "T412: errno must be EINVAL");
+
+    // Clean up
+    ASSERT_EQ(os_unlink(ftest), 0, "T413: os_unlink(filetype_test) must succeed");
+
+    // --- Permission / Ownership stubs ---
+
+    ASSERT_EQ(os_chmod("@.test", 0644), -1, "T500: os_chmod must return -1");
+    ASSERT_EQ(errno, ENOTSUP, "T501: os_chmod errno must be ENOTSUP");
+
+    ASSERT_EQ(os_fchmod(1, 0644), -1, "T502: os_fchmod must return -1");
+    ASSERT_EQ(errno, ENOTSUP, "T503: os_fchmod errno must be ENOTSUP");
+
+    ASSERT_EQ(os_chown("@.test", 0, 0), -1, "T504: os_chown must return -1");
+    ASSERT_EQ(errno, ENOTSUP, "T505: os_chown errno must be ENOTSUP");
+
+    ASSERT_EQ(os_fchown(1, 0, 0), -1, "T506: os_fchown must return -1");
+    ASSERT_EQ(errno, ENOTSUP, "T507: os_fchown errno must be ENOTSUP");
+
+    ASSERT_EQ(os_umask(0022), 0, "T508: os_umask should return 0 on RISC OS (noop)");
+
+    ASSERT_EQ(os_ftruncate(1, 10), -1, "T509: os_ftruncate must return -1");
+    ASSERT_EQ(errno, ENOTSUP, "T510: os_ftruncate errno must be ENOTSUP");
+
+    // Create dir
+    ASSERT_EQ(os_mkdir(tempdir, 0), 0, "T511: mkdir for is_dir check");
+    ASSERT_EQ(os_file_exists(tempdir), 1, "T512: os_file_exists must return 1 for existing dir");
+    ASSERT_EQ(os_is_dir(tempdir), 1, "T513: os_is_dir must return 1 for dir");
+
+    // Cleanup
+    ASSERT_EQ(os_rmdir(tempdir), 0, "T514: cleanup tempdir");
+
+    // Non-existent
+    ASSERT_EQ(os_file_exists("@.nonexistent123"), 0, "T515: os_file_exists must return 0 for nonexistent");
+    ASSERT_EQ(os_is_dir("@.nonexistent123"), 0, "T516: os_is_dir must return 0 for nonexistent");
+
+    // ----- os_merge tests -----
+
+    // Create A + B
+    ASSERT_EQ(os_write(os_open("@.a", O_WRONLY | O_CREAT, 0), "ABC", 3), 3, "T517: create file A");
+    ASSERT_EQ(os_write(os_open("@.b", O_WRONLY | O_CREAT, 0), "DEF", 3), 3, "T518: create file B");
+    ASSERT_EQ(os_close_path("@.a"), 0, "T519: close file A");
+    ASSERT_EQ(os_close_path("@.b"), 0, "T520: close file B");
+
+    // Merge
+    ASSERT_EQ(os_merge("@.a", "@.b"), 0, "T519: os_merge A+B into A");
+
+    // Read result
+    fd = os_open("@.a", O_RDONLY, 0);
+    char merged[8] = {0};
+    ASSERT_EQ(os_read(fd, merged, 6), 6, "T520: read merged A");
+    ASSERT_EQ(memcmp(merged, "ABCDEF", 6), 0, "T521: merged content must be ABCDEF");
+    ASSERT_EQ(os_close(fd), 0, "T522: close merged A");
+
+    // Cleanup
+    ASSERT_EQ(os_unlink("@.a"), 0, "T523: unlink A");
+    ASSERT_EQ(os_unlink("@.b"), 0, "T524: unlink B");
+
+
+    // ----- os_split tests -----
+
+    // Create input
+    fd = os_open("@.longfile", O_WRONLY | O_CREAT, 0);
+    ASSERT_EQ(os_write(fd, "1234567890", 10), 10, "T525: write split input");
+    ASSERT_EQ(os_close(fd), 0, "T526: close split input");
+
+    // Split into 4+6
+    ASSERT_EQ(os_split("@.longfile", 4, "@.part1", "@.part2"), 0, "T527: os_split into 4+6");
+
+    // Read back
+    fd = os_open("@.part1", O_RDONLY, 0);
+    char p1[8] = {0};
+    ASSERT_EQ(os_read(fd, p1, 4), 4, "T528: read part1");
+    ASSERT_EQ(memcmp(p1, "1234", 4), 0, "T529: part1 = 1234");
+    os_close(fd);
+
+    fd = os_open("@.part2", O_RDONLY, 0);
+    char p2[8] = {0};
+    ASSERT_EQ(os_read(fd, p2, 6), 6, "T530: read part2");
+    ASSERT_EQ(memcmp(p2, "567890", 6), 0, "T531: part2 = 567890");
+    os_close(fd);
+
+    // Cleanup
+    ASSERT_EQ(os_unlink("@.longfile"), 0, "T532: unlink longfile");
+    ASSERT_EQ(os_unlink("@.part1"), 0, "T533: unlink part1");
+    ASSERT_EQ(os_unlink("@.part2"), 0, "T534: unlink part2");
+
 
     if (failures == 0)
         write_string("PASS: fs module\n");

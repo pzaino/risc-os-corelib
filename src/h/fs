@@ -1,6 +1,26 @@
 #ifndef __LIBOS_FS_H__
 #define __LIBOS_FS_H__
 
+/*
+ * libOS - POSIX-like and SWI-safe C Library for RISC OS
+ *
+ * File: env.c
+ * Author: Paolo Fabio Zaino
+ * License: Mozilla Public License 2.0 (MPL-2.0)
+ *
+ * Description:
+ *   This file is part of libOS, a safe and portable ANSI C99 library that
+ *   provides POSIX-style APIs for RISC OS. It wraps RISC OS SWIs with strict
+ *   validation and aims to be CLib-independent while enabling safe development
+ *   of applications, kernel modules, and system utilities.
+ *
+ *   This source code is licensed under the terms of the Mozilla Public License
+ *   Version 2.0. You may obtain a copy of the license at:
+ *   https://www.mozilla.org/MPL/2.0/
+ *
+ *   SPDX-License-Identifier: MPL-2.0
+ */
+
 #ifdef __CC_NORCROFT
 #pragma include_only_once
 #endif
@@ -10,6 +30,16 @@
 #define OS_MAX_PATH 256
 #define OS_COPY_BUF 1024
 #define INVALID_PATH(p) (!(p) || *(p) == '\0')
+
+#ifndef SEEK_SET
+#define SEEK_SET 0
+#endif
+#ifndef SEEK_CUR
+#define SEEK_CUR 1
+#endif
+#ifndef SEEK_END
+#define SEEK_END 2
+#endif
 
 // Replacement for struct stat using only types available in ANSI C
 typedef struct os_stat_t {
@@ -39,6 +69,8 @@ int os_access(const char *pathname, int mode);
 
 int os_open(const char *path, int flags, int mode);
 int os_close(int fd);
+int os_close_path(const char *path);
+int os_stat_fd(int fd, struct os_stat_t *st);
 int os_read(int fd, void *buf, size_t count);
 int os_write(int fd, const void *buf, size_t count);
 long os_lseek(int fd, long offset, int whence);
@@ -59,6 +91,7 @@ int os_truncate(const char *path, long length);
 int os_ftruncate(int fd, long length);
 
 int os_set_filetype(const char *path, int filetype);
+int os_get_filetype(const char *path, int *filetype);
 int os_file_exists(const char *path);
 int os_is_dir(const char *path);
 int os_merge(const char *dest, const char *src);

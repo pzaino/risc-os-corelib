@@ -4,9 +4,15 @@
 #ifdef __CC_NORCROFT
 #pragma include_only_once
 #pragma force_top_level
-
+#ifndef EINVAL
 #define EINVAL 22
+#endif
+#ifndef ENOENT
 #define EBADF 9
+#endif
+#ifndef ENOTDIR
+#define ENOTDIR 20
+#endif
 #endif
 
 #include <stdio.h>

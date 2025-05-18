@@ -17,24 +17,60 @@
 #ifndef ENOTSUP
 #define ENOTSUP 95
 #endif
+#ifndef EINVAL
 #define EINVAL 22
+#endif
+#ifndef ENOENT
 #define ENOENT 2
-#define ENOSPC 28
-#define EMFILE 24
-#define EEXIST 17
-#define EACCES 13
-#define EBADF 9
+#endif
+#ifndef ENOTDIR
 #define ENOTDIR 20
+#endif
+#ifndef ENOTEMPTY
+#define ENOTEMPTY 39
+#endif
+#ifndef ENOSPC
+#define ENOSPC 28
+#endif
+#ifndef ENOSYS
+#define ENOSYS 38
+#endif
+#ifndef EMFILE
+#define EMFILE 24
+#endif
+#ifndef EEXIST
+#define EEXIST 17
+#endif
+#ifndef EACCES
+#define EACCES 13
+#endif
+#ifndef EBADF
+#define EBADF 9
+#endif
+#ifndef EISDIR
 #define EISDIR 21
+#endif
+#ifndef EIO
 #define EIO 5
+#endif
+#ifndef ENODEV
 #define ENODEV 19
+#endif
+#ifndef EBUSY
 #define EBUSY 16
+#endif
+#ifndef EMLINK
 #define EMLINK 31
+#endif
+#ifndef EDEADLOCK
 #define EDEADLOCK 35
+#endif
 #ifndef ENAMETOOLONG
 #define ENAMETOOLONG 36
 #endif
+#ifndef ENOMEM
 #define ENOMEM 12
+#endif
 
 int os_map_error(int errnum);
 
