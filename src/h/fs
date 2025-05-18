@@ -7,6 +7,10 @@
 
 #include <stddef.h>
 
+#define OS_MAX_PATH 256
+#define OS_COPY_BUF 1024
+#define INVALID_PATH(p) (!(p) || *(p) == '\0')
+
 // Replacement for struct stat using only types available in ANSI C
 typedef struct os_stat_t {
     unsigned int st_size;
@@ -53,5 +57,11 @@ int os_fchown(int fd, int owner, int group);
 int os_umask(int mask);
 int os_truncate(const char *path, long length);
 int os_ftruncate(int fd, long length);
+
+int os_set_filetype(const char *path, int filetype);
+int os_file_exists(const char *path);
+int os_is_dir(const char *path);
+int os_merge(const char *dest, const char *src);
+int os_split(const char *path, long offset, const char *out1, const char *out2);
 
 #endif /* __LIBOS_FS_H__ */

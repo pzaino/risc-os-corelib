@@ -11,6 +11,7 @@
 // File and Directory Operations
 // ----------------------------
 
+// Make a directory
 int os_mkdir(const char *path, int mode) {
     (void)mode;
     if (!path || *path == '\0') {
@@ -26,6 +27,7 @@ int os_mkdir(const char *path, int mode) {
     return 0;
 }
 
+// Remove a directory
 int os_rmdir(const char *path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -57,8 +59,7 @@ int os_rmdir(const char *path) {
     return 0;
 }
 
-
-
+// Change current working directory
 int os_chdir(const char *path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -73,6 +74,7 @@ int os_chdir(const char *path) {
     return 0;
 }
 
+// Get current working directory
 char *os_getcwd(char *buf, size_t size) {
     if (!buf || size == 0) {
         errno = EINVAL;
@@ -94,6 +96,7 @@ char *os_getcwd(char *buf, size_t size) {
     return buf;
 }
 
+// Unlink (delete) a file
 int os_unlink(const char *path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -108,6 +111,7 @@ int os_unlink(const char *path) {
     return 0;
 }
 
+// Rename a file
 int os_rename(const char *oldpath, const char *newpath) {
     if (!oldpath || *oldpath == '\0' || !newpath || *newpath == '\0') {
         errno = EINVAL;
@@ -181,6 +185,62 @@ int os_access(const char *pathname, int mode) {
     }
 
     return 0;
+}
+
+// (RISC OS only) Set the filetype of a file
+int os_set_filetype(const char *path, int filetype) {
+    if (!path || *path == '\0' || filetype < 0 || filetype > 0xFFF) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    const _kernel_oserror *err = _swix(OS_File, _INR(0,2),
+        18, path, (filetype << 8)); // filetype in top 3 bytes of load addr
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    return 0;
+}
+
+// (RISC OS only) Get the filetype of a file
+int os_get_filetype(const char *path, int *filetype) {
+    if (!path || *path == '\0' || !filetype) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    int type = 0;
+    const _kernel_oserror *err = _swix(OS_File, _INR(0,1) | _OUT(0),
+        23, path, &type);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    *filetype = (type >> 8) & 0xFFF; // Extract filetype
+    return 0;
+}
+
+// (RISC OS only) Check if a file exists
+int os_file_exists(const char *path) {
+    if (!path || *path == '\0') {
+        errno = EINVAL;
+        return 0;
+    }
+
+    int type = 0;
+    const _kernel_oserror *err = _swix(OS_File, _INR(0,1) | _OUT(0),
+        23, path, &type);
+    return (!err && type != 0);
+}
+
+int os_is_dir(const char *path) {
+    os_stat_t st;
+    if (os_stat(path, &st) < 0)
+        return 0;
+    return ((st.st_mode & 0xF000) == 0x4000); // S_IFDIR
 }
 
 // ----------------------------
@@ -518,10 +578,124 @@ int os_truncate(const char *path, long length) {
     return 0;
 }
 
-
 // Truncate a file to a specific length
 int os_ftruncate(int fd, long length) {
     (void)fd; (void)length;
     errno = ENOTSUP;
+    return -1;
+}
+
+// (RISC OS only) Merge two files in one
+int os_merge(const char *dest, const char *src) {
+    if (!dest || !src || *dest == '\0' || *src == '\0') {
+        errno = EINVAL;
+        return -1;
+    }
+
+    char buf[1024];
+    int r;
+
+    int in = os_open(src, O_RDONLY, 0);
+    if (in < 0) return -1;
+
+    int out = os_open(dest, O_WRONLY | O_CREAT, 0);
+    if (out < 0) {
+        os_close(in);
+        return -1;
+    }
+
+    // Seek to end of destination
+    if (os_lseek(out, 0, 1) < 0) {
+        os_close(in);
+        os_close(out);
+        return -1;
+    }
+
+    while ((r = os_read(in, buf, sizeof(buf))) > 0) {
+        if (os_write(out, buf, r) != r) {
+            os_close(in);
+            os_close(out);
+            errno = EIO;
+            return -1;
+        }
+    }
+
+    os_close(in);
+    os_close(out);
+    return 0;
+}
+
+// (RISC OS only) Split a file into two files at a given offset
+int os_split(const char *path, long offset, const char *out1, const char *out2) {
+    if (!path || !out1 || !out2 || offset < 0 ||
+        *path == '\0' || *out1 == '\0' || *out2 == '\0') {
+        errno = EINVAL;
+        return -1;
+    }
+
+    int in = os_open(path, O_RDONLY, 0);
+    if (in < 0) return -1;
+
+    os_stat_t st;
+    if (os_stat(path, &st) < 0) {
+        os_close(in);
+        return -1;
+    }
+
+    unsigned int size = st.st_size;
+    if ((unsigned int)offset > size) {
+        os_close(in);
+        errno = EINVAL;
+        return -1;
+    }
+
+    int part1 = os_open(out1, O_WRONLY | O_CREAT, 0);
+    int part2 = os_open(out2, O_WRONLY | O_CREAT, 0);
+    if (part1 < 0 || part2 < 0) {
+        os_close(in);
+        if (part1 >= 0) os_close(part1);
+        if (part2 >= 0) os_close(part2);
+        return -1;
+    }
+
+    char buf[1024];
+    int total = 0, r;
+
+    // Write first part
+    while (total < offset && (r = os_read(in, buf, sizeof(buf))) > 0) {
+        int to_write = r;
+        if (total + r > offset) to_write = offset - total;
+        if (os_write(part1, buf, to_write) != to_write) {
+            errno = EIO;
+            goto fail;
+        }
+        total += to_write;
+        // buffer tail carry to second file if r > to_write
+        if (to_write < r) {
+            if (os_write(part2, buf + to_write, r - to_write) != (r - to_write)) {
+                errno = EIO;
+                goto fail;
+            }
+            break;
+        }
+    }
+
+    // Continue writing second part
+    while ((r = os_read(in, buf, sizeof(buf))) > 0) {
+        if (os_write(part2, buf, r) != r) {
+            errno = EIO;
+            goto fail;
+        }
+    }
+
+    os_close(in);
+    os_close(part1);
+    os_close(part2);
+    return 0;
+
+fail:
+    os_close(in);
+    os_close(part1);
+    os_close(part2);
     return -1;
 }
