@@ -122,6 +122,7 @@ int os_rename(const char *oldpath, const char *newpath) {
     return 0;
 }
 
+// Get file status
 int os_stat(const char *path, struct os_stat_t *st) {
     if (!path || *path == '\0' || !st) {
         errno = EINVAL;
@@ -155,6 +156,7 @@ int os_stat(const char *path, struct os_stat_t *st) {
     return 0;
 }
 
+// Check if a file exists and is accessible
 int os_access(const char *pathname, int mode) {
     (void)mode; // RISC OS doesn’t enforce permissions
 
@@ -185,6 +187,7 @@ int os_access(const char *pathname, int mode) {
 // File Descriptor Operations
 // ----------------------------
 
+// Open a file and return its file descriptor
 int os_open(const char *path, int flags, int mode) {
     (void)mode;
     if (!path || *path == '\0') {
@@ -222,6 +225,7 @@ int os_open(const char *path, int flags, int mode) {
     return handle;
 }
 
+// Close a file descriptor
 int os_close(int fd) {
     if (fd < 0) {
         errno = EBADF;
@@ -236,23 +240,26 @@ int os_close(int fd) {
     return 0;
 }
 
-int os_read(int fd, void *buf, size_t count) {
+// Read from a file descriptor into a buffer
+int os_read(int fd, void *buf, const size_t count) {
     if (fd < 0 || !buf || count == 0) {
         errno = EINVAL;
         return -1;
     }
 
-    int bytes_read = 0;
-    const _kernel_oserror *err = _swix(OS_GBPB, _INR(0,3) | _OUT(4),
-                                 3, fd, buf, count, &bytes_read);
+    int not_read = 0;
+    const _kernel_oserror *err = _swix(OS_GBPB, _INR(0,3) | _OUTR(3,3),
+                                        4, fd, buf, count, &not_read);
+
     if (err) {
         errno = os_map_error(err->errnum);
         return -1;
     }
-    return bytes_read;
+    return (int)(count - not_read);
 }
 
-int os_write(int fd, const void *buf, size_t count) {
+// Write to a file descriptor from a buffer
+int os_write(int fd, const void *buf, const size_t count) {
     if (fd < 0 || !buf || count == 0) {
         errno = EINVAL;
         return -1;
@@ -260,9 +267,8 @@ int os_write(int fd, const void *buf, size_t count) {
 
     int not_written = 0;
     const _kernel_oserror *err = _swix(OS_GBPB,
-        _INR(0,3) | _OUT(3),
-        2, fd, (void *)buf, count,
-        &not_written);
+                                _INR(0,3) | _OUTR(3,3),
+                                2, fd, (void *)buf, count, &not_written);
 
     if (err) {
         errno = os_map_error(err->errnum);
@@ -272,8 +278,8 @@ int os_write(int fd, const void *buf, size_t count) {
     return count - not_written;
 }
 
-
-
+// Seek to a specific position in a file descriptor
+// whence: 0 = SEEK_SET, 1 = SEEK_CUR
 long os_lseek(int fd, long offset, int whence) {
     if (fd < 0) {
         errno = EBADF;
@@ -328,4 +334,194 @@ void os_seekdir(os_dir_t *dirp, long loc) {
         return;
     }
     dirp->context = (int)loc;
+}
+
+// Open a directory stream
+os_dir_t *os_opendir(const char *path) {
+    if (!path || *path == '\0') {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    os_dir_t *dir = malloc(sizeof(os_dir_t));
+    if (!dir) {
+        errno = ENOMEM;
+        return NULL;
+    }
+
+    strncpy(dir->path, path, sizeof(dir->path) - 1);
+    dir->path[sizeof(dir->path) - 1] = '\0';
+    dir->context = 0;
+    memset(dir->entry, 0, sizeof(dir->entry));
+    return dir;
+}
+
+// Read the next entry in a directory stream
+os_dirent_t *os_readdir(os_dir_t *dirp) {
+    if (!dirp) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    const _kernel_oserror *err = _swix(OS_GBPB, _INR(0,5) | _OUT(4),
+        10, dirp->path, dirp->entry, 1, dirp->context,
+        sizeof(dirp->entry), &dirp->context);
+
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return NULL;
+    }
+
+    if (dirp->context == -1)
+        return NULL;
+
+    static os_dirent_t ent;
+    strncpy(ent.d_name, dirp->entry, sizeof(ent.d_name) - 1);
+    ent.d_name[sizeof(ent.d_name) - 1] = '\0';
+    return &ent;
+}
+
+// Close a directory stream
+int os_closedir(os_dir_t *dirp) {
+    if (!dirp) {
+        errno = EINVAL;
+        return -1;
+    }
+    free(dirp);
+    return 0;
+}
+
+// Change file mode (not supported in RISC OS)
+int os_chmod(const char *path, int mode) {
+    (void)path; (void)mode;
+    errno = ENOTSUP;
+    return -1;
+}
+
+// Change file mode (not supported in RISC OS)
+int os_fchmod(int fd, int mode) {
+    (void)fd; (void)mode;
+    errno = ENOTSUP;
+    return -1;
+}
+
+// Change file ownership (not supported in RISC OS)
+int os_chown(const char *path, int owner, int group) {
+    (void)path; (void)owner; (void)group;
+    errno = ENOTSUP;
+    return -1;
+}
+
+// Change file ownership (not supported in RISC OS)
+int os_fchown(int fd, int owner, int group) {
+    (void)fd; (void)owner; (void)group;
+    errno = ENOTSUP;
+    return -1;
+}
+
+// Change file permissions (not supported in RISC OS)
+int os_umask(int mask) {
+    (void)mask;
+    return 0; // always zero, no permission enforcement
+}
+
+// Truncate a file to a specific length
+// This function is a bit tricky in RISC OS, as it doesn't have a direct equivalent.
+int os_truncate(const char *path, long length) {
+    if (!path || *path == '\0' || length < 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    os_stat_t st;
+    if (os_stat(path, &st) < 0)
+        return -1;
+
+    unsigned int curr_size = st.st_size;
+    unsigned int new_size = (unsigned int)length;
+
+    if (curr_size == new_size)
+        return 0; // no-op
+
+    // Allocate buffer
+    void *buf = malloc(new_size);
+    if (!buf) {
+        errno = ENOMEM;
+        return -1;
+    }
+
+    // Open file for reading
+    int fd = os_open(path, O_RDONLY, 0);
+    if (fd < 0) {
+        free(buf);
+        return -1;
+    }
+
+    const _kernel_oserror *err = NULL;
+    int not_read = 0;
+    err = _swix(OS_GBPB, _INR(0,3) | _OUT(3),
+            4, fd, buf, new_size, &not_read);
+    int read_bytes = new_size - (unsigned int)not_read;
+
+    os_close(fd);
+
+    if (err) {
+        free(buf);
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    // Pad with zeros if expanding
+    if ((unsigned int)read_bytes < new_size) {
+        memset(((char *)buf) + read_bytes, 0, new_size - read_bytes);
+    }
+
+    // Delete old file
+    if (os_unlink(path) < 0) {
+        free(buf);
+        return -1;
+    }
+
+    // Recreate file
+    fd = os_open(path, O_WRONLY | O_CREAT, 0);
+    if (fd < 0) {
+        free(buf);
+        errno = ENOENT;
+        return -1;
+    }
+
+    // Write truncated content
+    if (os_lseek(fd, 0, 0) < 0) {
+        free(buf);
+        errno = EBADF;
+        return -1;
+    }
+
+    if (os_write(fd, buf, new_size) != (int)new_size) {
+        free(buf);
+        errno = EIO;
+        return -1;
+    }
+
+    os_close(fd);
+    free(buf);
+
+    if (err) {
+        errno = err ? os_map_error(err->errnum) : EIO;
+        return -1;
+    }
+
+    // Restore filetype using raw SWI (for now)
+    // Could wrap later as: int os_setfiletype(const char *path, int filetype);
+    _swix(OS_File, _INR(0,2), 18, path, (st.st_mode & 0xFFFF) << 8);
+
+    return 0;
+}
+
+
+// Truncate a file to a specific length
+int os_ftruncate(int fd, long length) {
+    (void)fd; (void)length;
+    errno = ENOTSUP;
+    return -1;
 }

@@ -1,6 +1,6 @@
 #include "libOS:fs.h"
 #include "libOS:fcntl.h"
-#include "../testlib.h"
+#include "../test_lib.h"
 #include "main.h"
 
 int failures = 0;
@@ -10,7 +10,7 @@ int main(void) {
     os_stat_t st;
     const char *tempfile = "@.tempfile";     
     const char *tempdir  = "@.tempdir";
-    const char *nonexistent = "@.doesnotexist";
+    const char *nonexistent = "@.does_not_exist";
 
     // os_stat - error path
     ASSERT_EQ(os_stat(NULL, &st), -1, "os_stat(NULL) must fail");
@@ -30,8 +30,50 @@ int main(void) {
     ASSERT_EQ(os_unlink(NULL), -1, "os_unlink(NULL) must fail");
     ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
 
+
+    // os_truncate
+    ASSERT_EQ(os_truncate(NULL, 0), -1, "os_truncate(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "errno must be EINVAL");
+
+    // Create a test file again
+    int fd = os_open(tempfile, O_WRONLY | O_CREAT, 0);
+    ASSERT_NE(fd, -1, "os_open(write) must succeed");
+
+    const char *msg2 = "This is a long test string.";
+    int msglen = strlen(msg2);
+    ASSERT_EQ(os_write(fd, msg2, msglen), msglen, "os_write(longer msg) must succeed");
+    ASSERT_EQ(os_close(fd), 0, "os_close must succeed");
+
+    // Truncate it to 5 bytes
+    ASSERT_EQ(os_truncate(tempfile, 5), 0, "os_truncate to 5 bytes must succeed");
+
+    // Stat to confirm new size
+    ASSERT_EQ(os_stat(tempfile, &st), 0, "os_stat after truncate must succeed");
+    ASSERT_EQ(st.st_size, 5, "os_stat.st_size should be 5");
+
+    // Reopen and read content
+    fd = os_open(tempfile, O_RDONLY, 0);
+    ASSERT_NE(fd, -1, "os_open(read) after truncate must succeed");
+
+    char truncated[16] = {0};
+    int r = os_read(fd, truncated, sizeof(truncated));
+    write_string("os_read returned: '");
+    write_string(truncated);
+    write_string("'\n");
+    ASSERT_EQ(r, 5, "os_read after truncate should return 5 bytes");
+    ASSERT_EQ(os_close(fd), 0, "os_close after read must succeed");
+
+    // Truncate again to longer size (expand)
+    ASSERT_EQ(os_truncate(tempfile, 20), 0, "os_truncate to 20 bytes must succeed");
+    ASSERT_EQ(os_stat(tempfile, &st), 0, "os_stat after expand must succeed");
+    ASSERT_EQ(st.st_size, 20, "os_stat.st_size should be 20");
+
+    // Clean up
+    ASSERT_EQ(os_unlink(tempfile), 0, "os_unlink after truncate must succeed");
+
+    
     // Create + write + stat
-    int fd = os_open(tempfile, O_WRONLY | O_CREAT, 0); // write
+    fd = os_open(tempfile, O_WRONLY | O_CREAT, 0); // write
     ASSERT_NE(fd, -1, "os_open(write) must succeed");
 
     const char *msg = "Hello RISC OS\n";
@@ -45,7 +87,7 @@ int main(void) {
     ASSERT_NE(fd, -1, "os_open(read) must succeed");
 
     char readbuf[256] = {0};
-    int r = os_read(fd, readbuf, sizeof(readbuf));
+    r = os_read(fd, readbuf, sizeof(readbuf));
     ASSERT_GT(r, 0, "os_read must return positive byte count");
 
     ASSERT_EQ(os_close(fd), 0, "os_close must succeed");

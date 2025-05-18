@@ -43,4 +43,15 @@ void os_rewinddir(os_dir_t *dirp);
 long os_telldir(os_dir_t *dirp);
 void os_seekdir(os_dir_t *dirp, long loc);
 
+os_dir_t *os_opendir(const char *path);
+os_dirent_t *os_readdir(os_dir_t *dirp);
+int os_closedir(os_dir_t *dirp);
+int os_chmod(const char *path, int mode);
+int os_fchmod(int fd, int mode);
+int os_chown(const char *path, int owner, int group);
+int os_fchown(int fd, int owner, int group);
+int os_umask(int mask);
+int os_truncate(const char *path, long length);
+int os_ftruncate(int fd, long length);
+
 #endif /* __LIBOS_FS_H__ */
