@@ -1,6 +1,7 @@
 # Master Makefile
 
-TESTS=001UT_FS 002UT_ENV
+TESTS=001UT_FS 002UT_ENV 003UT_PROC
+CLEAN=_clean_001UT_FS _clean_002UT_ENV _clean_003UT_PROC
 
 .PHONY: $(TESTS)
 $(TESTS):
@@ -9,9 +10,15 @@ $(TESTS):
 	RunMe
 	up
 
+.PHONY: $(CLEAN) _clean_%
+_clean_%:
+	dir @.$*
+	amu clean -f MakefileDDE
+	up
+
 .PHONY: all
 all: $(TESTS)
 
-.PHONY: clean $(TESTS)
-clean:
-#	@.CleanTests
+.PHONY: clean $(CLEAN) _clean_%
+clean: $(CLEAN)
+

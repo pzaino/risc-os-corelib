@@ -1,0 +1,51 @@
+#ifdef __CC_NORCROFT
+#include "libOS:proc.h"
+#else
+#include "../../!LibOS/h/proc"
+#endif
+
+#include "../test_lib.h"
+#include "main.h"
+
+int main(void) {
+    test_failures(RESET_FAILURES);
+    write_string("Testing proc module...\n");
+
+    // Test os_getpid
+   int pid = os_getpid();
+    ASSERT_GE(pid, 0, "P100: os_getpid should return >= 0");
+
+    //ASSERT_EQ(os_start_task("*Echo Hello &"), 0, "P101: os_start_task should succeed");
+
+    ASSERT_EQ(os_fork(), -1, "P102: os_fork must still return -1");
+    ASSERT_EQ(errno, ENOTSUP, "P103: errno = ENOTSUP");
+
+    // Test os_getppid
+    ASSERT_EQ(os_getppid(), 0, "P002: os_getppid must return 0 on RISC OS");
+
+    // Test os_system with NULL
+    ASSERT_EQ(os_system(NULL), 1, "P003: os_system(NULL) must return 1");
+    ASSERT_EQ(errno, EINVAL, "P004: os_system(NULL) must set errno to EINVAL");
+
+    // Test os_system with empty string
+    ASSERT_EQ(os_system(""), 1, "P005: os_system(empty) must return 1");
+    ASSERT_EQ(errno, EINVAL, "P006: os_system(empty) must set errno to EINVAL");
+
+    // Test os_system with valid command (non-error assumed)
+    ASSERT_EQ(os_system("Echo Hello"), 0, "P007: os_system should succeed");
+
+    // Test os_fork
+    ASSERT_EQ(os_fork(), -1, "P008: os_fork must return -1");
+    ASSERT_EQ(errno, ENOTSUP, "P009: os_fork must set errno to ENOTSUP");
+
+    // Test os_execvp
+    ASSERT_EQ(os_execvp("foo", NULL), -1, "P010: os_execvp must return -1");
+    ASSERT_EQ(errno, ENOTSUP, "P011: os_execvp must set errno to ENOTSUP");
+
+    if (test_failures(GET_FAILURES) == 0)
+        write_string("PASS: proc module\n");
+    else
+        write_string("FAIL: proc module\n");
+
+    return test_failures(GET_FAILURES);
+}

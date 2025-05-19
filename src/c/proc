@@ -6,10 +6,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define WIMP_READ_SYSINFO 0x400F2
+#define TASKMANAGER_STARTTASK 0x42683
+
 // Return process ID (not meaningful on RISC OS)
 int os_getpid(void) {
-    return 1; // Assumed "main process"
+    int handle = 0;
+    const _kernel_oserror *err = _swix(WIMP_READ_SYSINFO, _IN(0) | _OUT(1),
+                                       2, &handle);
+    if (err || handle == 0)
+        return 0; // No Wimp task / not in desktop
+    return handle;
 }
+
 
 // Return parent process ID (also not meaningful)
 int os_getppid(void) {
@@ -36,9 +45,25 @@ int os_system(const char *command) {
 
 // Stub for fork()
 int os_fork(void) {
-    errno = ENOTSUP;
+    errno = ENOTSUP; // Fork is not supported on RISC OS
     return -1;
 }
+
+int os_start_task(const char *cmd) {
+    if (!cmd || *cmd == '\0') {
+        errno = EINVAL;
+        return -1;
+    }
+
+    const _kernel_oserror *err = _swix(TASKMANAGER_STARTTASK, _IN(0), cmd);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+
+    return 0; // We don’t get a child PID, so we just return 0
+}
+
 
 // Stub for execvp()
 int os_execvp(const char *file, char *const argv[]) {

@@ -9,6 +9,7 @@ int os_getpid(void);
 int os_getppid(void);
 int os_system(const char *command);
 int os_fork(void);
+int os_start_task(const char *cmd);
 int os_execvp(const char *file, char *const argv[]);
 
 #endif /* __LIBOS_PROC_H__ */
