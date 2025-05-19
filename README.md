@@ -1,28 +1,36 @@
 # LibOS
 
-**WORK IN PROGRESS** This library is being converted from the old Acorn Archimedes/RPC era to the new RISC OS 5 and DDE. Please be patient while I finish this. If you want to help out, please contact me.
+**WORK IN PROGRESS**  
+This library is currently being updated from its original Acorn Archimedes/RPC-era implementation to support RISC OS 5 and the modern DDE toolset. Please be patient while this work is in progress. If you'd like to contribute, feel free to get in touch.
 
-This is a really old library of mine which was original written in 1996/1998 for my Acorn computers and RISC OS. Now I am updating it for RISC OS 5 and latest DDE (so it now uses shared Makefiles, new `_swix` syntax etc.).
+This is a legacy library I originally wrote between 1996 and 1998 for use on Acorn machines running RISC OS. I'm now modernising it to support RISC OS 5, Shared Makefiles, and the newer `_swix()` syntax.
 
-It's a library that is meant to make RISC OS API look and feel like a POSIX library. This has few advantages:
+LibOS is designed to make the RISC OS API feel more like a POSIX-compatible C library. The goal is to improve developer experience by offering:
 
-- It makes RISC OS programming more intuitive for who's familiar with UNIX.
-- It makes porting UNIX code to RISC OS a bit easier.
-- It adds arguments data type and value checking which reduce the risk of passing wrong values to RISC OS API and getting crashes.
-- It adds some extra functions that are not available in RISC OS API.
+- A more intuitive interface for developers familiar with Unix-style programming.
+- Easier porting of Unix software to RISC OS.
+- Built-in validation of argument types and values to reduce crashes due to incorrect SWI usage.
+- A few additional helper functions not present in the native RISC OS API.
 
-It's not a life changing library, but it does make programming in C on RISC OS faster, easier and more fun.
+LibOS is not intended to replace the RISC OS API. It's a wrapper — a safety layer that enhances usability while still allowing you to call native SWIs directly when needed.
 
-Another advantage is that one can use Linux man's to look up for functions and their arguments, all libOS has different is that the functions are prefixed with "os_" and the arguments are checked for validity. The library is not complete, but it does cover most of the common functions. The library is also not a replacement for RISC OS API, it's just a wrapper around it. So you can still use RISC OS API directly if you need to.
+It's not a "life-changing" library — but it does make writing C programs for RISC OS faster, safer, and more enjoyable.
 
-**This library has nothing to do with the RISC OS UnixLib and GCC**, I created it at the time for Acorn/Castle/ROOL DDE, because the OSLib and RISC_OSLib were still heavily error prone, and an error in a SWI call on RISC OS means in most cases that the system may crash or become unreliable. GCC and the UnixLib cover way more POSIX functions than libOS does, the only reason I use POSIX syntax is to make the library intuitive.
+One practical benefit is that you can often consult standard Linux `man` pages for documentation. LibOS adopts POSIX-style function names (prefixed with `os_`) and behavior, but with added argument validation for RISC OS safety. The library is not yet complete, but already wraps most commonly used functionality.
+
+**Important note:** This library is **not related to GCC's UnixLib**. I originally created it for use with Acorn/Castle/ROOL's DDE (and CLib). At the time, OSLib and RISC_OSLib were still prone to errors, and on RISC OS a simple mistake in a SWI call can crash or destabilize the system.  
+UnixLib and GCC cover a wider range of POSIX functions than LibOS — but the purpose here is different. LibOS uses a POSIX-like API to make things more intuitive, while ensuring safety and compatibility.
 
 ## License
 
-This library is licensed under the MPL 2.0. See the [LICENSE](LICENSE) file for details.
+This library is released under the MPL 2.0 license. See the [LICENSE](LICENSE) file for full terms.
 
 ## Building
 
-To build the library, you need to have RISC OS development environment set up. When in the Desktop open the directory containing this library and double click on the `MkDDE` file.
+To build the library, make sure your RISC OS development environment is correctly set up.  
+From the RISC OS Desktop:
 
-To clean up a build and remove all the generated files, double click on the file called `MkCleanDDE`.
+1. Open the directory containing this library.
+2. Double-click the file named `MkDDE`.
+
+To clean the build and remove generated files, double-click on `MkDDEClean`.
