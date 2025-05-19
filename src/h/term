@@ -5,6 +5,8 @@
 #pragma include_only_once
 #endif
 
+#include "common.h"
+
 int os_putchar(int c);
 int os_getchar(void);
 int os_isatty(int fd);

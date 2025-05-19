@@ -5,6 +5,8 @@
 #pragma include_only_once
 #endif
 
+#include "common.h"
+
 int os_heap_create(const char *name, int size, int flags);
 long os_heap_free(void);
 void *os_heap_alloc(int size);

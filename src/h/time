@@ -5,6 +5,8 @@
 #pragma include_only_once
 #endif
 
+#include "common.h"
+
 typedef long time_t;
 
 typedef struct timeval {

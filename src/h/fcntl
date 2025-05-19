@@ -5,6 +5,8 @@
 #pragma include_only_once
 #endif
 
+#include "common.h"
+
 // Access modes
 #define O_RDONLY 0
 #define O_WRONLY 1

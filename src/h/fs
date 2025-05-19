@@ -26,6 +26,7 @@
 #pragma include_only_once
 #endif
 
+#include "common.h"
 #include <stddef.h>
 
 #define OS_MAX_PATH 256

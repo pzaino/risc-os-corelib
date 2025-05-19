@@ -5,6 +5,7 @@
 #pragma include_only_once
 #endif
 
+#include "common.h"
 #include <stddef.h>
 
 void *os_malloc(size_t size);

@@ -5,6 +5,7 @@
 #pragma include_only_once
 #endif
 
+#include "common.h"
 #include <stddef.h>
 
 int os_path_is_absolute(const char *path);

@@ -5,6 +5,8 @@
 #pragma include_only_once
 #endif
 
+#include "common.h"
+
 void *os_module_load(const char *filename);
 int os_module_unload(const char *name);
 int os_module_ensure(const char *name);
