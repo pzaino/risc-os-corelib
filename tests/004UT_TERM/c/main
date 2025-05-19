@@ -1,0 +1,44 @@
+#ifdef __CC_NORCROFT
+#include "libOS:term.h"
+#else
+#include "../../!LibOS/h/term"
+#endif
+
+#include "../test_lib.h"
+#include "main.h"
+
+int main(void) {
+    test_failures(RESET_FAILURES);
+    write_string("Testing term module...\n");
+
+    // Basic write
+    ASSERT_EQ(os_putchar('X'), 'X', "T001: os_putchar must write 'X'");
+
+    // Basic read prompt (requires manual input)
+    write_string("Please type a single character: ");
+    int c = os_getchar();
+    ASSERT_GT(c, 0, "T002: os_getchar must return a character");
+
+    // isatty checks
+    ASSERT_EQ(os_isatty(0), 1, "T003: stdin should be a tty");
+    ASSERT_EQ(os_isatty(1), 1, "T004: stdout should be a tty");
+    ASSERT_EQ(os_isatty(2), 1, "T005: stderr should be a tty");
+    ASSERT_EQ(os_isatty(3), 0, "T006: fd 3 should not be a tty");
+
+    // ttyname always returns "tty"
+    ASSERT_EQ(strcmp(os_ttyname(0), "tty"), 0, "T007: ttyname should return 'tty'");
+
+    // termios stubs
+    ASSERT_EQ(os_tcgetattr(0, NULL), -1, "T008: tcgetattr not supported");
+    ASSERT_EQ(errno, ENOTSUP, "T009: errno = ENOTSUP");
+
+    ASSERT_EQ(os_tcsetattr(0, 0, NULL), -1, "T010: tcsetattr not supported");
+    ASSERT_EQ(errno, ENOTSUP, "T011: errno = ENOTSUP");
+
+    if (test_failures(GET_FAILURES) == 0)
+        write_string("PASS: proc module\n");
+    else
+        write_string("FAIL: proc module\n");
+
+    return test_failures(GET_FAILURES);
+}

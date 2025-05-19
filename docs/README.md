@@ -8,3 +8,4 @@
   - [File System](./fs.md)
   - [Environment Variables](./env.md)
   - [Process Management](./proc.md)
+  - [Terminal I/O](./term.md)
