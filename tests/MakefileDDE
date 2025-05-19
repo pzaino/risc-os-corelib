@@ -1,13 +1,13 @@
 # Master Makefile
 
-TESTS=001UT_FS
+TESTS=001UT_FS 002UT_ENV
 
 .PHONY: $(TESTS)
 $(TESTS):
 	dir @.$@
 	amu all THROWBACK=-throwback -f MakefileDDE
 	RunMe
-	back
+	up
 
 .PHONY: all
 all: $(TESTS)

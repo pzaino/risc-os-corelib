@@ -1,0 +1,84 @@
+#ifdef __CC_NORCROFT
+#include "libOS:env.h"
+#else
+#include "../../!LibOS/h/env"
+#endif
+
+#include "../test_lib.h"
+#include "main.h"
+
+int failures = 0;
+
+int main(void) {
+    const char *testvar = "Test$EnvVar";
+    const char *value   = "RISC OS is different";
+    const char *altval  = "Something else";
+    char *res;
+
+    // --- os_getenv tests ---
+    ASSERT_EQ(os_getenv(NULL), NULL, "E001: os_getenv(NULL) must return NULL");
+    ASSERT_EQ(errno, EINVAL, "E002: errno must be EINVAL");
+
+    ASSERT_EQ(os_getenv(""), NULL, "E003: os_getenv(empty string) must return NULL");
+    ASSERT_EQ(errno, EINVAL, "E004: errno must be EINVAL");
+
+    ASSERT_EQ(os_unsetenv(testvar), 0, "E005: os_unsetenv before test");
+
+    // --- os_setenv tests ---
+    ASSERT_EQ(os_setenv(NULL, "x", 1), -1, "E006: os_setenv(NULL, ...) must fail");
+    ASSERT_EQ(errno, EINVAL, "E007: errno must be EINVAL");
+
+    ASSERT_EQ(os_setenv("", "x", 1), -1, "E008: os_setenv(\"\", ...) must fail");
+    ASSERT_EQ(errno, EINVAL, "E009: errno must be EINVAL");
+
+    ASSERT_EQ(os_setenv(testvar, NULL, 1), -1, "E010: os_setenv(..., NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "E011: errno must be EINVAL");
+
+    // Set normally
+    ASSERT_EQ(os_setenv(testvar, value, 1), 0, "E012: os_setenv should succeed");
+    res = os_getenv(testvar);
+    ASSERT_NE(res, NULL, "E013: os_getenv should succeed after setenv");
+    ASSERT_EQ(strcmp(res, value), 0, "E014: getenv value must match");
+
+    // Set again without overwrite
+    ASSERT_EQ(os_setenv(testvar, altval, 0), 0, "E015: os_setenv(overwrite=0) must succeed (noop)");
+    res = os_getenv(testvar);
+    ASSERT_EQ(strcmp(res, value), 0, "E016: getenv must return original value");
+
+    // Set again with overwrite
+    ASSERT_EQ(os_setenv(testvar, altval, 1), 0, "E017: os_setenv(overwrite=1) must succeed");
+    res = os_getenv(testvar);
+    ASSERT_EQ(strcmp(res, altval), 0, "E018: getenv must reflect overwritten value");
+
+    // --- os_env_exists tests ---
+    ASSERT_EQ(os_env_exists(NULL), 0, "E019: os_env_exists(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "E020: errno must be EINVAL");
+
+    ASSERT_EQ(os_env_exists(""), 0, "E021: os_env_exists(empty) must fail");
+    ASSERT_EQ(errno, EINVAL, "E022: errno must be EINVAL");
+
+    ASSERT_EQ(os_env_exists(testvar), 1, "E023: os_env_exists must return true for known var");
+
+    // --- os_unsetenv tests ---
+    ASSERT_EQ(os_unsetenv(NULL), -1, "E024: os_unsetenv(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "E025: errno must be EINVAL");
+
+    ASSERT_EQ(os_unsetenv(""), -1, "E026: os_unsetenv(empty) must fail");
+    ASSERT_EQ(errno, EINVAL, "E027: errno must be EINVAL");
+
+    ASSERT_EQ(os_unsetenv(testvar), 0, "E028: os_unsetenv should succeed");
+
+    ASSERT_EQ(os_env_exists(testvar), 0, "E029: os_env_exists must return 0 after unset");
+
+    // --- os_clearenv test ---
+    //ASSERT_EQ(os_setenv("Alias$", "foo", 1), 0, "E030: set Alias$ before clear");
+    //ASSERT_EQ(os_clearenv(), 0, "E031: os_clearenv must succeed");
+    // Not assert-ing postcondition because clearenv is best-effort
+
+    if (failures == 0)
+        write_string("PASS: env module\n");
+    else
+        write_string("FAIL: env module\n");
+
+    return failures;
+}

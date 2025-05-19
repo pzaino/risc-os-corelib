@@ -5,6 +5,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 // Get environment variable value
 char *os_getenv(const char *name) {
@@ -14,6 +15,7 @@ char *os_getenv(const char *name) {
     }
 
     static char value[256];
+    memset(value, 0, sizeof(value));
     const _kernel_oserror *err = _swix(OS_ReadVarVal,
                                  _INR(0, 4) | _OUT(1),
                                  name,              // r0 = variable name
@@ -29,22 +31,25 @@ char *os_getenv(const char *name) {
     return value;
 }
 
-// Set environment variable
-int os_setenv(const char *name, const char *value, int overwrite) {
-    if (!name || *name == '\0' || !value) {
+int os_setenv_typed(const char *name, const char *value, int length, int type, int overwrite) {
+    if (!name || *name == '\0' || !value || length < 0 || type < 0 || type > 255) {
         errno = EINVAL;
         return -1;
     }
 
-    if (!overwrite && os_getenv(name)) {
+    if (!overwrite && os_env_exists(name)) {
         return 0;
     }
 
-    _kernel_oserror *err = _swix(OS_SetVarVal,
-                                 _INR(0, 2),
-                                 name,     // r0 = variable name
-                                 value,    // r1 = new value
-                                 0);       // r2 = normal (not system)
+    const _kernel_oserror * err = _swix(OS_SetVarVal,
+        _INR(0,4),
+        name,        // R0: variable name
+        value,       // R1: value (not necessarily null-terminated)
+        length,      // R2: value length
+        0,           // R3: name pointer (0 = first call)
+        type         // R4: variable type (0 = string)
+    );
+
     if (err) {
         errno = os_map_error(err->errnum);
         return -1;
@@ -53,11 +58,30 @@ int os_setenv(const char *name, const char *value, int overwrite) {
     return 0;
 }
 
+
+// Set environment variable
+int os_setenv(const char *name, const char *value, int overwrite) {
+    if (!name || *name == '\0' || !value) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    // determine length of value
+    int length = strlen(value);
+
+    return os_setenv_typed(name, value, length, 0, overwrite);
+}
+
 // Unset (remove) an environment variable
 int os_unsetenv(const char *name) {
     if (!name || *name == '\0') {
         errno = EINVAL;
         return -1;
+    }
+
+    // If it doesn't exist, silently succeed (POSIX behavior)
+    if (!os_env_exists(name)) {
+        return 0;
     }
 
     _kernel_oserror *err = _swix(OS_SetVarVal,
@@ -80,16 +104,24 @@ int os_env_exists(const char *name) {
         return 0;
     }
 
-    char tmp[1];
-    _kernel_oserror *err = _swix(OS_ReadVarVal,
-                                 _INR(0, 4) | _OUT(1),
-                                 name,
-                                 tmp,
-                                 sizeof(tmp),
-                                 0x01,  // Return string
-                                 0);
-    return err == NULL;
+    char tmp[256];     // Required to avoid RISC OS misbehaviour
+    int length = 0;
+
+    const _kernel_oserror *err = _swix(OS_ReadVarVal,
+        _INR(0,2) | _OUT(2),
+        name,        // R0: variable name
+        tmp,         // R1: dummy buffer (real buffer required)
+        -1,          // R2: request existence check
+        &length);    // R2 output: NOT(length) if exists, 0 if not
+
+    if (err || length == 0) {
+        return 0; // Does not exist or error
+    }
+
+    return 1;
 }
+
+
 
 // Clear a predefined set of known environment variables (best-effort)
 int os_clearenv(void) {

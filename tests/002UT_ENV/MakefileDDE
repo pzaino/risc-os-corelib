@@ -1,0 +1,9 @@
+# Makefile for tests
+
+COMPONENT = test_libOS
+OBJS      = main
+
+include CApp
+LIBS = LibOS:o.libOS
+
+# Dynamic dependencies:

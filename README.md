@@ -1,6 +1,6 @@
 # LibOS
 
-**WORK IN PROGRESS** This library is being converted from the old Acorn Archimedes/RPC era to the new RISC OS 5 and DDE.
+**WORK IN PROGRESS** This library is being converted from the old Acorn Archimedes/RPC era to the new RISC OS 5 and DDE. Please be patient while I finish this. If you want to help out, please contact me.
 
 This is a really old library of mine which was original written in 1996/1998 for my Acorn computers and RISC OS. Now I am updating it for RISC OS 5 and latest DDE (so it now uses shared Makefiles, new `_swix` syntax etc.).
 
