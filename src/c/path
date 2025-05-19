@@ -1,3 +1,24 @@
+/*
+ * libOS - POSIX-like and SWI-safe C Library for RISC OS
+ *
+ * File: env.c
+ * Author: Paolo Fabio Zaino
+ * Copyright (c) 1998-2025 by Paolo Fabio Zaino, all rights reserved
+ * Distributed under: Mozilla Public License 2.0 (MPL-2.0)
+ *
+ * Description:
+ *   This file is part of libOS, a safe and portable ANSI C99 library that
+ *   provides POSIX-style APIs for RISC OS. It wraps RISC OS SWIs with strict
+ *   validation and aims to be CLib-independent while enabling safe development
+ *   of applications, kernel modules, and system utilities.
+ *
+ *   This source code is licensed under the terms of the Mozilla Public License
+ *   Version 2.0. You may obtain a copy of the license at:
+ *   https://www.mozilla.org/MPL/2.0/
+ *
+ *   SPDX-License-Identifier: MPL-2.0
+ */
+
 /* path.c - Path manipulation helpers for RISC OS (libOS) */
 
 #include "common.h"
@@ -15,6 +36,7 @@ int os_realpath(const char *in, char *out, size_t size) {
     }
 
     int spare = 0;
+    out[0] = '\0';
     const _kernel_oserror *err = _swix(OS_FSControl,
         _INR(0,5) | _OUT(5),
         37, in, out, 0, 0, size, &spare);
@@ -24,40 +46,35 @@ int os_realpath(const char *in, char *out, size_t size) {
         return -1;
     }
 
+    if ((int)size - spare <= 0) {
+        errno = ENAMETOOLONG;
+        return -1;
+    }
+
     return 0;
 }
 
-// Check if a path is absolute (starts with $)
 int os_path_is_absolute(const char *path) {
     return (path && path[0] == '$');
 }
 
-// Join two paths with '.' separator if needed
 char *os_path_join(const char *a, const char *b, char *out, size_t maxlen) {
     if (!a || !b || !out || maxlen == 0) {
         errno = EINVAL;
         return NULL;
     }
 
-    size_t len_a = strlen(a);
-    size_t len_b = strlen(b);
-    int need_sep = (len_a > 0 && a[len_a - 1] != '.');
+    int need_sep = (a[0] != '\0' && a[strlen(a) - 1] != '.');
 
-    // Compute required length
-    size_t needed = len_a + len_b + (need_sep ? 1 : 0) + 1;
-    if (needed > maxlen) {
+    int written = snprintf(out, maxlen, "%s%s%s", a, need_sep ? "." : "", b);
+    if (written < 0 || (size_t)written >= maxlen) {
         errno = ENAMETOOLONG;
         return NULL;
     }
 
-    // Compose output
-    strcpy(out, a);
-    if (need_sep) strcat(out, ".");
-    strcat(out, b);
     return out;
 }
 
-// Extract basename from path (after last '.')
 const char *os_path_basename(const char *path) {
     if (!path) {
         errno = EINVAL;
@@ -68,7 +85,6 @@ const char *os_path_basename(const char *path) {
     return last ? last + 1 : path;
 }
 
-// Extract dirname from path into output buffer
 char *os_path_dirname(const char *path, char *out, size_t maxlen) {
     if (!path || !out || maxlen == 0) {
         errno = EINVAL;
@@ -77,7 +93,6 @@ char *os_path_dirname(const char *path, char *out, size_t maxlen) {
 
     const char *last = strrchr(path, '.');
     if (!last) {
-        // No separator found: treat as current dir
         if (maxlen < 2) {
             errno = ENAMETOOLONG;
             return NULL;
@@ -86,18 +101,17 @@ char *os_path_dirname(const char *path, char *out, size_t maxlen) {
         return out;
     }
 
-    size_t len = last - path;
+    size_t len = (size_t)(last - path);
     if (len >= maxlen) {
         errno = ENAMETOOLONG;
         return NULL;
     }
 
-    strncpy(out, path, len);
+    memcpy(out, path, len);
     out[len] = '\0';
     return out;
 }
 
-// Convert Unix-style path (/foo/bar) to RISC OS-style ($.foo.bar)
 char *os_path_to_riscos(const char *unix_path, char *out, size_t maxlen) {
     if (!unix_path || !out || maxlen == 0) {
         errno = EINVAL;
@@ -112,15 +126,11 @@ char *os_path_to_riscos(const char *unix_path, char *out, size_t maxlen) {
         }
         out[i++] = '$';
         out[i++] = '.';
-        unix_path++; // Skip leading slash
+        unix_path++;
     }
 
     for (; i < maxlen - 1 && *unix_path; ++unix_path) {
-        if (*unix_path == '/') {
-            out[i++] = '.';
-        } else {
-            out[i++] = *unix_path;
-        }
+        out[i++] = (*unix_path == '/') ? '.' : *unix_path;
     }
 
     if (*unix_path != '\0') {
@@ -132,7 +142,6 @@ char *os_path_to_riscos(const char *unix_path, char *out, size_t maxlen) {
     return out;
 }
 
-// Convert RISC OS-style path ($.foo.bar) to Unix-style (/foo/bar)
 char *os_path_to_unix(const char *riscos_path, char *out, size_t maxlen) {
     if (!riscos_path || !out || maxlen == 0) {
         errno = EINVAL;
@@ -150,11 +159,7 @@ char *os_path_to_unix(const char *riscos_path, char *out, size_t maxlen) {
     }
 
     for (; i < maxlen - 1 && *riscos_path; ++riscos_path) {
-        if (*riscos_path == '.') {
-            out[i++] = '/';
-        } else {
-            out[i++] = *riscos_path;
-        }
+        out[i++] = (*riscos_path == '.') ? '/' : *riscos_path;
     }
 
     if (*riscos_path != '\0') {

@@ -1,0 +1,71 @@
+#ifdef __CC_NORCROFT
+#include "libOS:path.h"
+#else
+#include "../../!LibOS/h/path"
+#endif
+
+#include "../test_lib.h"
+#include "main.h"
+
+int main(void) {
+    test_failures(RESET_FAILURES);
+    write_string("Testing path module...\n");
+
+    char out[256];
+
+    // --- os_realpath ---
+    ASSERT_EQ(os_realpath("@", out, sizeof(out)), 0, "P001: os_realpath(@) must succeed");
+    ASSERT_GT(strlen(out), 0, "P002: realpath must produce non-empty string");
+
+    ASSERT_EQ(os_realpath(NULL, out, sizeof(out)), -1, "P003: os_realpath(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "P004: errno must be EINVAL");
+
+    // --- os_path_is_absolute ---
+    ASSERT_EQ(os_path_is_absolute("$."), 1, "P010: $ is absolute path");
+    ASSERT_EQ(os_path_is_absolute("foo.bar"), 0, "P011: relative path");
+
+    // --- os_path_join ---
+    ASSERT_NE(os_path_join("foo", "bar", out, sizeof(out)), NULL, "P020: path join should succeed");
+    ASSERT_EQ(strcmp(out, "foo.bar"), 0, "P021: join foo + bar = foo.bar");
+
+    ASSERT_NE(os_path_join("foo.", "bar", out, sizeof(out)), NULL, "P022: path join (trailing .) succeeds");
+    ASSERT_EQ(strcmp(out, "foo.bar"), 0, "P023: foo. + bar = foo.bar");
+
+    ASSERT_EQ(os_path_join(NULL, "bar", out, sizeof(out)), NULL, "P024: join with NULL should fail");
+    ASSERT_EQ(errno, EINVAL, "P025: errno must be EINVAL");
+
+    // --- os_path_basename ---
+    ASSERT_EQ(strcmp(os_path_basename("foo.bar.baz"), "baz"), 0, "P030: basename = baz");
+    ASSERT_EQ(strcmp(os_path_basename("file"), "file"), 0, "P031: basename = file");
+
+    // --- os_path_dirname ---
+    ASSERT_NE(os_path_dirname("foo.bar.baz", out, sizeof(out)), NULL, "P040: dirname should succeed");
+    ASSERT_EQ(strcmp(out, "foo.bar"), 0, "P041: dirname = foo.bar");
+
+    ASSERT_NE(os_path_dirname("file", out, sizeof(out)), NULL, "P042: dirname of no-dot path");
+    ASSERT_EQ(strcmp(out, "."), 0, "P043: dirname fallback = .");
+
+    ASSERT_EQ(os_path_dirname("abc", NULL, sizeof(out)), NULL, "P044: dirname(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "P045: errno must be EINVAL");
+
+    // --- os_path_to_riscos ---
+    ASSERT_NE(os_path_to_riscos("/foo/bar", out, sizeof(out)), NULL, "P050: unix → riscos");
+    ASSERT_EQ(strcmp(out, "$.foo.bar"), 0, "P051: converted = $.foo.bar");
+
+    ASSERT_NE(os_path_to_riscos("foo/bar", out, sizeof(out)), NULL, "P052: relative unix path");
+    ASSERT_EQ(strcmp(out, "foo.bar"), 0, "P053: converted = foo.bar");
+
+    // --- os_path_to_unix ---
+    ASSERT_NE(os_path_to_unix("$.foo.bar", out, sizeof(out)), NULL, "P060: riscos → unix");
+    ASSERT_EQ(strcmp(out, "/foo/bar"), 0, "P061: converted = /foo/bar");
+
+    ASSERT_NE(os_path_to_unix("foo.bar", out, sizeof(out)), NULL, "P062: relative riscos path");
+    ASSERT_EQ(strcmp(out, "foo/bar"), 0, "P063: converted = foo/bar");
+
+    if (test_failures(GET_FAILURES) == 0)
+        write_string("PASS: proc module\n");
+    else
+        write_string("FAIL: proc module\n");
+
+    return test_failures(GET_FAILURES);
+}
