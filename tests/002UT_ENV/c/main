@@ -7,13 +7,13 @@
 #include "../test_lib.h"
 #include "main.h"
 
-int failures = 0;
-
 int main(void) {
     const char *testvar = "Test$EnvVar";
     const char *value   = "RISC OS is different";
     const char *altval  = "Something else";
     char *res;
+    test_failures(RESET_FAILURES);
+    write_string("Testing env module...\n");
 
     // --- os_getenv tests ---
     ASSERT_EQ(os_getenv(NULL), NULL, "E001: os_getenv(NULL) must return NULL");
@@ -75,10 +75,10 @@ int main(void) {
     //ASSERT_EQ(os_clearenv(), 0, "E031: os_clearenv must succeed");
     // Not assert-ing postcondition because clearenv is best-effort
 
-    if (failures == 0)
+    if (test_failures(GET_FAILURES) == 0)
         write_string("PASS: env module\n");
     else
         write_string("FAIL: env module\n");
 
-    return failures;
+    return test_failures(GET_FAILURES);
 }

@@ -7,10 +7,9 @@
 #include "../../\!LibOS/h/fs"
 #include <fcntl.h>
 #endif
+
 #include "../test_lib.h"
 #include "main.h"
-
-int failures = 0;
 
 int main(void) {
     char buf[256];
@@ -18,6 +17,7 @@ int main(void) {
     const char *tempfile = "@.tempfile";     
     const char *tempdir  = "@.tempdir";
     const char *nonexistent = "@.does_not_exist";
+    test_failures(RESET_FAILURES);
 
     // ----- Test os_stat and directories related functions -----
 
@@ -300,10 +300,10 @@ int main(void) {
     ASSERT_EQ(os_unlink("@.part2"), 0, "T534: unlink part2");
 
 
-    if (failures == 0)
+    if (test_failures(GET_FAILURES) == 0)
         write_string("PASS: fs module\n");
     else
         write_string("FAIL: fs module\n");
 
-    return failures;
+    return test_failures(GET_FAILURES);
 }

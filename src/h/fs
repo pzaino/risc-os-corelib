@@ -6,7 +6,8 @@
  *
  * File: env.c
  * Author: Paolo Fabio Zaino
- * License: Mozilla Public License 2.0 (MPL-2.0)
+ * Copyright (c) 1998-2025 by Paolo Fabio Zaino, all rights reserved
+ * Distributed under: Mozilla Public License 2.0 (MPL-2.0)
  *
  * Description:
  *   This file is part of libOS, a safe and portable ANSI C99 library that

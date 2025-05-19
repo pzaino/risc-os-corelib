@@ -1,3 +1,24 @@
+/*
+ * libOS - POSIX-like and SWI-safe C Library for RISC OS
+ *
+ * File: env.c
+ * Author: Paolo Fabio Zaino
+ * Copyright (c) 1998-2025 by Paolo Fabio Zaino, all rights reserved
+ * Distributed under: Mozilla Public License 2.0 (MPL-2.0)
+ *
+ * Description:
+ *   This file is part of libOS, a safe and portable ANSI C99 library that
+ *   provides POSIX-style APIs for RISC OS. It wraps RISC OS SWIs with strict
+ *   validation and aims to be CLib-independent while enabling safe development
+ *   of applications, kernel modules, and system utilities.
+ *
+ *   This source code is licensed under the terms of the Mozilla Public License
+ *   Version 2.0. You may obtain a copy of the license at:
+ *   https://www.mozilla.org/MPL/2.0/
+ *
+ *   SPDX-License-Identifier: MPL-2.0
+ */
+
 /* env.c - Environment variable wrappers for RISC OS SWIs (libOS) */
 
 #include "common.h"
@@ -5,7 +26,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
+//#include <stdio.h> // I use it only for debugging
 
 // Get environment variable value
 char *os_getenv(const char *name) {
@@ -14,25 +35,43 @@ char *os_getenv(const char *name) {
         return NULL;
     }
 
-    static char value[256];
+    char *tmp = malloc(strlen(name) + 1);
+    if (!tmp) {
+        errno = ENOMEM;
+        return NULL;
+    }
+    memcpy(tmp, name, strlen(name));
+    tmp[strlen(name)] = '\0'; // Ensure null-termination
+
+    //char *new_name = NULL;
+    static char value[OS_ENV_MAX_LEN] = {0};
     memset(value, 0, sizeof(value));
+
     const _kernel_oserror *err = _swix(OS_ReadVarVal,
-                                 _INR(0, 4) | _OUT(1),
-                                 name,              // r0 = variable name
-                                 value,             // r1 = output buffer
-                                 sizeof(value),     // r2 = output buffer size
-                                 0x01,              // r3 = return string
-                                 0);                // r4 = flags
+                                 _INR(0, 4),
+                                 tmp,              // r0 = variable name
+                                 value,            // r1 = output buffer
+                                 sizeof(value),    // r2 = output buffer size
+                                 NULL,             // r3 = name pointer (0 = first call)
+                                 3                // r4 = flags
+                                );           
+
     if (err) {
         errno = os_map_error(err->errnum);
         return NULL;
     }
 
+    value[sizeof(value) - 1] = '\0'; // Ensure null-termination
     return value;
 }
 
 int os_setenv_typed(const char *name, const char *value, int length, int type, int overwrite) {
-    if (!name || *name == '\0' || !value || length < 0 || type < 0 || type > 255) {
+    if (!name || *name == '\0' || length < -1 || type < 0 || type > 255) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (length > OS_ENV_MAX_LEN) {
         errno = EINVAL;
         return -1;
     }
@@ -41,14 +80,39 @@ int os_setenv_typed(const char *name, const char *value, int length, int type, i
         return 0;
     }
 
+    // Ensure that, if lenght is > 0 and value is NULL, we set it to 0
+    if (length > 0 && !value) {
+        value = "";
+        length = 0;
+    }
+
+    // If lenght is -1, make sure value is null
+    char *tmp = NULL; 
+    if (length != -1 && length != 0) {
+        tmp = malloc(length + 1);
+        if (!tmp) {
+            errno = ENOMEM;
+            return -1;
+        }
+        memcpy(tmp, value, length);
+        tmp[length] = '\0'; // Ensure null-termination
+    }
+
+    // if value is not NULL or empty, and lenght > 0, make sure tmp is null-terminated
+    if (tmp && *tmp != '\0' && length > 0) {
+        tmp[length] = '\0';
+    }
+
     const _kernel_oserror * err = _swix(OS_SetVarVal,
         _INR(0,4),
         name,        // R0: variable name
-        value,       // R1: value (not necessarily null-terminated)
+        tmp,       // R1: value (not necessarily null-terminated)
         length,      // R2: value length
         0,           // R3: name pointer (0 = first call)
         type         // R4: variable type (0 = string)
     );
+
+    free(tmp); // Free the temporary buffer
 
     if (err) {
         errno = os_map_error(err->errnum);
@@ -84,17 +148,7 @@ int os_unsetenv(const char *name) {
         return 0;
     }
 
-    _kernel_oserror *err = _swix(OS_SetVarVal,
-                                 _INR(0, 2),
-                                 name,     // r0 = variable name
-                                 "",       // r1 = empty string = unset
-                                 0);       // r2 = normal variable
-    if (err) {
-        errno = os_map_error(err->errnum);
-        return -1;
-    }
-
-    return 0;
+    return os_setenv_typed(name, "", -1, 0, 1); // Set to NULL to remove
 }
 
 // Check if a variable exists (does not return its value)
@@ -104,14 +158,23 @@ int os_env_exists(const char *name) {
         return 0;
     }
 
-    char tmp[256];     // Required to avoid RISC OS misbehaviour
+    // Let's protect name from becomign corrupted
+    char *tmp1 = malloc(strlen(name) + 1);
+    if (!tmp1) {
+        errno = ENOMEM;
+        return 0;
+    }
+    memcpy(tmp1, name, strlen(name));
+    tmp1[strlen(name)] = '\0'; // Ensure null-termination
+
+    char tmp2[OS_ENV_MAX_LEN] = {0};     // Required to avoid RISC OS misbehaviour
     int length = 0;
 
     const _kernel_oserror *err = _swix(OS_ReadVarVal,
         _INR(0,2) | _OUT(2),
-        name,        // R0: variable name
-        tmp,         // R1: dummy buffer (real buffer required)
-        -1,          // R2: request existence check
+        tmp1,        // R0: variable name
+        tmp2,         // R1: dummy buffer (real buffer required)
+        sizeof(tmp2), // R2: request existence check
         &length);    // R2 output: NOT(length) if exists, 0 if not
 
     if (err || length == 0) {

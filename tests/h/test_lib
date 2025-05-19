@@ -20,42 +20,50 @@
 #include <string.h>
 #include <errno.h>
 
+#define INC_FAILURES 1
+#define DEC_FAILURES 2
+#define GET_FAILURES 3
+#define RESET_FAILURES 0
+
+void write_string(const char *s); 
+int test_failures(int action);
+
 // --- Assertions ---
 #define ASSERT_EQ(x, y, msg) \
     do { if ((x) != (y)) { \
         write_string("FAIL: "); write_string(msg); write_string("\n"); \
-        failures++; \
-    }} while (0)
+        test_failures(INC_FAILURES); \
+    }} while (0);
 
 #define ASSERT_NE(x, y, msg) \
     do { if ((x) == (y)) { \
         write_string("FAIL: "); write_string(msg); write_string("\n"); \
-        failures++; \
-    }} while (0)
+        test_failures(INC_FAILURES); \
+    }} while (0);
 
 #define ASSERT_GT(x, y, msg) \
     do { if ((x) <= (y)) { \
         write_string("FAIL: "); write_string(msg); write_string("\n"); \
-        failures++; \
-    }} while (0)
+        test_failures(INC_FAILURES); \
+    }} while (0);
 
 #define ASSERT_GE(x, y, msg) \
     do { if ((x) < (y)) { \
         write_string("FAIL: "); write_string(msg); write_string("\n"); \
-        failures++; \
-    }} while (0)
+        test_failures(INC_FAILURES); \
+    }} while (0);
 
 #define ASSERT_LT(x, y, msg) \
     do { if ((x) >= (y)) { \
         write_string("FAIL: "); write_string(msg); write_string("\n"); \
-        failures++; \
-    }} while (0)
+        test_failures(INC_FAILURES); \
+    }} while (0);
 
 #define ASSERT_LE(x, y, msg) \
     do { if ((x) > (y)) { \
         write_string("FAIL: "); write_string(msg); write_string("\n"); \
-        failures++; \
-    }} while (0)
+        test_failures(INC_FAILURES); \
+    }} while (0);
 
 #define ASSERT_OK(x, msg) \
     ASSERT_EQ((x), 0, msg)
@@ -63,12 +71,29 @@
 #define ASSERT_FAIL(x, msg) \
     ASSERT_EQ((x), -1, msg)
 
-// Optional: could add more like ASSERT_NE, ASSERT_OK, etc.
-void write_string(const char *s);
+// Library functions:
 
 void write_string(const char *s) {
     if (!s) return;
     puts(s);
+}
+
+int test_failures(int action) {
+    static int fail_num = 0;
+    if (action == RESET_FAILURES) {
+        fail_num = 0;
+        return 0;
+    }
+    if (action == INC_FAILURES) {
+        return ++fail_num;
+    }
+    if (action == DEC_FAILURES) {
+        return --fail_num;
+    }
+    if (action == GET_FAILURES) {
+        return fail_num;
+    }
+    return -1; // Invalid action
 }
 
 #endif // TESTLIB_H

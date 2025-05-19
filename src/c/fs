@@ -68,11 +68,11 @@ int os_rmdir(const char *path) {
 
     // Use OS_FSControl 27 with force bit set, no recurse
     int flags = 0; 
-    flags |= 0x00000001; // Force delete
+    flags |= 0x00001001; // Force delete
 
 
     const _kernel_oserror *err = _swix(OS_FSControl, _INR(0,7),
-                                       27, path, flags, -1, -1, -1, -1);
+                                       27, path, flags, -1, -1, -1, -1, -1);
 
     if (err) {
         errno = os_map_error(err->errnum);
