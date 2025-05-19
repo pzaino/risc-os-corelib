@@ -40,6 +40,7 @@
 
 char *os_getenv(const char *name);
 int os_setenv(const char *name, const char *value, int overwrite);
+int os_setenv_typed(const char *name, const char *value, int length, int type, int overwrite);
 int os_unsetenv(const char *name);
 int os_env_exists(const char *name);
 int os_clearenv(void);
