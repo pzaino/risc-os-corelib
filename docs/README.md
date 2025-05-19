@@ -6,3 +6,4 @@
 - [Installation Guide](./installation.md)
 - API Reference
   - [File System](./fs.md)
+  - [Environment Variables](./env.md)

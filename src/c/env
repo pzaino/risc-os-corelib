@@ -122,7 +122,6 @@ int os_setenv_typed(const char *name, const char *value, int length, int type, i
     return 0;
 }
 
-
 // Set environment variable
 int os_setenv(const char *name, const char *value, int overwrite) {
     if (!name || *name == '\0' || !value) {
@@ -183,8 +182,6 @@ int os_env_exists(const char *name) {
 
     return 1;
 }
-
-
 
 // Clear a predefined set of known environment variables (best-effort)
 int os_clearenv(void) {

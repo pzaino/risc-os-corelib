@@ -2,6 +2,12 @@
 
 This document describes the POSIX-like file system API exposed by `libOS`, a C99 library for RISC OS. All functions are prefixed with `os_` and operate with internal argument validation and SWI-level error handling.
 
+Include it in your code using:
+
+```c
+#include <LibOS:fs.h>
+```
+
 ---
 
 ## File and Directory Operations
