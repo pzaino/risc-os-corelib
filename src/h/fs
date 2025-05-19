@@ -71,6 +71,7 @@ int os_access(const char *pathname, int mode);
 int os_open(const char *path, int flags, int mode);
 int os_close(int fd);
 int os_close_path(const char *path);
+char *os_get_open_files_list(void);
 int os_stat_fd(int fd, struct os_stat_t *st);
 int os_read(int fd, void *buf, size_t count);
 int os_write(int fd, const void *buf, size_t count);
