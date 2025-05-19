@@ -1,8 +1,8 @@
 # libOS installation Guide
 
-You'll find libOS on the [RISC OS Community](https://www.riscoscommunity.org/) PAcMan repository when it'll be completed, prebuilt and packaged, ready for use.
+You'll find libOS on the [RISC OS Community](https://riscoscommunity.org/add-our-riscpkg-repositories-to-your-packman/) PacMan repository when it'll be completed, prebuilt and packaged, ready for use.
 
-Here you have it in source code format, which you can build yourself. 
+Here you have it in source code format, which you can build yourself.
 
 ## Building libOS
 
