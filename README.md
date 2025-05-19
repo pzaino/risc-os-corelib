@@ -15,7 +15,7 @@ It's not a life changing library, but it does make programming in C on RISC OS f
 
 Another advantage is that one can use Linux man's to look up for functions and their arguments, all libOS has different is that the functions are prefixed with "os_" and the arguments are checked for validity. The library is not complete, but it does cover most of the common functions. The library is also not a replacement for RISC OS API, it's just a wrapper around it. So you can still use RISC OS API directly if you need to.
 
-**This library has nothing to do with the RISC OS UnixLib and GCC**, I created it at the time for Acorn/Castle/ROOL DDE, because the OSLib and RISC_OSLib were still heavily error prone, and an error in a SWI on RISC OS means in most cases that the system may crash or become unreliable. GCC and the UnixLib cover way more POSIX functions than libOS does, the only reason I use POSIX syntax is to make the library intuitive.
+**This library has nothing to do with the RISC OS UnixLib and GCC**, I created it at the time for Acorn/Castle/ROOL DDE, because the OSLib and RISC_OSLib were still heavily error prone, and an error in a SWI call on RISC OS means in most cases that the system may crash or become unreliable. GCC and the UnixLib cover way more POSIX functions than libOS does, the only reason I use POSIX syntax is to make the library intuitive.
 
 ## License
 
