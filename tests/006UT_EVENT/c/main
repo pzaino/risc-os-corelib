@@ -1,0 +1,74 @@
+
+#ifdef __CC_NORCROFT
+#include "libOS:event.h"
+#else
+#include "../../!LibOS/h/event"
+#endif
+
+#include "../test_lib.h"
+#include "main.h"
+
+static int triggered_event = 0;
+static int triggered_after = 0;
+static int triggered_every = 0;
+
+static void test_event_handler(int event_number, void *context) {
+    (void)context;
+    if (event_number == 42) {
+        triggered_event = 1;
+    }
+}
+
+static void test_after_callback(void *context) {
+    (void)context;
+    triggered_after = 1;
+}
+
+static void test_every_callback(void *context) {
+    (void)context;
+    triggered_every++;
+    if (triggered_every >= 3) {
+        os_call_timer_cancel(test_every_callback, context);
+    }
+}
+
+int main(void) {
+    test_failures(RESET_FAILURES);
+    write_string("Testing event module...\n");
+
+    // Subscribe to event 42
+    ASSERT_OK(os_event_subscribe(42, test_event_handler, NULL), "E100: os_event_subscribe should succeed");
+
+    // Manually invoke dispatcher to simulate EventV trigger
+    test_event_handler(42, NULL);
+    ASSERT_EQ(triggered_event, 1, "E101: test_event_handler should have set flag");
+
+    // Unsubscribe event
+    ASSERT_OK(os_event_unsubscribe(42), "E102: os_event_unsubscribe should succeed");
+
+    // Schedule transient callback
+    ASSERT_OK(os_callback_schedule(test_after_callback, NULL), "E103: os_callback_schedule should succeed");
+
+    // Schedule one-shot timer
+    ASSERT_OK(os_call_after(10, test_after_callback, NULL), "E104: os_call_after should succeed");
+
+    // Schedule repeating timer
+    ASSERT_OK(os_call_every(5, test_every_callback, NULL), "E105: os_call_every should succeed");
+
+    // Cancel the repeating timer early
+    ASSERT_OK(os_call_timer_cancel(test_every_callback, NULL), "E106: os_call_timer_cancel should succeed");
+
+    // Remove transient callback
+    ASSERT_OK(os_callback_cancel(test_after_callback, NULL), "E107: os_callback_cancel should succeed");
+
+    // ENOTSUP case
+    ASSERT_FAIL(os_event_generate(10, 0, 0, 0), "E108: os_event_generate must return -1");
+    ASSERT_EQ(errno, ENOTSUP, "E109: os_event_generate must set errno to ENOTSUP");
+
+    if (test_failures(GET_FAILURES) == 0)
+        write_string("PASS: event module\n");
+    else
+        write_string("FAIL: event module\n");
+
+    return test_failures(GET_FAILURES);
+}

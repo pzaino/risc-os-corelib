@@ -5,16 +5,16 @@
 #pragma include_only_once
 #endif
 
+#include "common.h"
+
 typedef void (*os_event_handler_fn)(int event_number, void *context);
+typedef void (*os_callback_fn)(void *context);
 
 typedef struct {
     int in_use;
     os_event_handler_fn handler;
     void *context;
 } event_entry_t;
-
-typedef void (*os_event_handler_fn)(int event_number, void *context);
-typedef void (*os_callback_fn)(void *context);
 
 // EventV handler API
 int os_event_subscribe(int event_number, os_event_handler_fn handler, void *context);
