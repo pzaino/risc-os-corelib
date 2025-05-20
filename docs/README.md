@@ -11,3 +11,4 @@
   - [Terminal I/O](./term.md)
   - [File paths string handling](./path.md)
   - [System Information](./sys.md)
+  - [Safe String Handling](./safe_str.md)
