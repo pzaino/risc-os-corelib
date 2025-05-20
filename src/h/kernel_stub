@@ -99,5 +99,10 @@ static inline _kernel_oserror *_swix(int swi_number, int flags, ...)
 #define OS_UpCall              0x00000018
 #define OS_Release             0x00000019
 #define OS_Claim               0x0000001A
+#define OS_ClaimRelease        0x0000001B
+#define OS_RemoveCallBack      0x0000001C
+#define OS_CallAfter           0x0000001D
+#define OS_CallEvery           0x0000001E
+#define OS_RemoveTickerEvent   0x0000001F
 
 #endif // __LIBOS_KSTUB_H__

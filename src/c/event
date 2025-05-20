@@ -1,67 +1,147 @@
-/* event.c - EventV claim/release wrappers for RISC OS (libOS) */
+/* event.c - RISC OS EventV handler management (libOS) */
 
 #include "common.h"
 #include "event.h"
 
-#include <stddef.h>
-#include <stdint.h>
+#include <string.h>
+#include <errno.h>
+
+#define MAX_EVENTS 256
+
+static event_entry_t event_table[MAX_EVENTS];
 
 // ----------------------------
-// EventV Operations
+// EventV Dispatching
 // ----------------------------
+static void eventv_dispatcher(int event_code, void *pw) {
+    if (event_code < 0 || event_code >= MAX_EVENTS)
+        return;
 
-// Claim an event handler by installing a handler on EventV
-int os_event_claim(int event_number, void (*handler)(int, void *), void *pw) {
-    (void)event_number; // Not usable in this API — EventV is global
+    if (event_table[event_code].in_use && event_table[event_code].handler) {
+        event_table[event_code].handler(event_code, event_table[event_code].context);
+    }
+}
 
-    if (!handler) {
+int os_event_subscribe(int event_number, os_event_handler_fn handler, void *context) {
+    if (event_number < 0 || event_number >= MAX_EVENTS || !handler) {
         errno = EINVAL;
         return -1;
     }
 
-    const _kernel_oserror *err = _swix(OS_Claim,
-                                       _INR(0,2),
-                                       0x10, // EventV vector number
-                                       handler,
-                                       pw);
+    if (!event_table[event_number].in_use) {
+        const _kernel_oserror *err = _swix(OS_Claim, _INR(0,2), 0x10, eventv_dispatcher, NULL);
+        if (err) {
+            errno = os_map_error(err->errnum);
+            return -1;
+        }
+    }
+
+    event_table[event_number].handler = handler;
+    event_table[event_number].context = context;
+    event_table[event_number].in_use = 1;
+    return 0;
+}
+
+int os_event_unsubscribe(int event_number) {
+    if (event_number < 0 || event_number >= MAX_EVENTS) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    event_table[event_number].in_use = 0;
+    event_table[event_number].handler = NULL;
+    event_table[event_number].context = NULL;
+
+    for (int i = 0; i < MAX_EVENTS; ++i)
+        if (event_table[i].in_use)
+            return 0;
+
+    const _kernel_oserror *err = _swix(OS_Release, _IN(0), 0x10);
     if (err) {
         errno = os_map_error(err->errnum);
         return -1;
     }
-
     return 0;
 }
 
-// Release the EventV handler
-int os_event_release(int event_number, 
-                     void (*handler)(int, void *), void *pw) 
-{
-    (void)event_number;
-    (void)handler;
-    (void)pw;
-
-    const _kernel_oserror *err = _swix(OS_Release,
-                                       _IN(0),
-                                       0x10); // EventV vector number
-
-    if (err) {
-        errno = os_map_error(err->errnum);
-        return -1;
-    }
-
-    return 0;
-}
-
-// ----------------------------
-// Events creation
-// ----------------------------
-
-// No official SWI exists to generate an event — we stub this
 int os_event_generate(int event_number, int data, int x, int y) {
-    (void)event_number;
-    (void)data;
-    (void)x;
-    (void)y;
+    (void)event_number; (void)data; (void)x; (void)y;
     errno = ENOTSUP;
     return -1;
+}
+
+// ----------------------------
+// Transient CallBacks
+// ----------------------------
+int os_callback_schedule(os_callback_fn cb, void *context) {
+    if (!cb) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    const _kernel_oserror *err = _swix(OS_AddCallBack, _INR(0,1), cb, context);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+    return 0;
+}
+
+int os_callback_cancel(os_callback_fn cb, void *context) {
+    if (!cb) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    const _kernel_oserror *err = _swix(OS_RemoveCallBack, _INR(0,1), cb, context);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+    return 0;
+}
+
+// ----------------------------
+// Timed Callbacks
+// ----------------------------
+int os_call_after(unsigned int cs_delay, os_callback_fn cb, void *context) {
+    if (!cb) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    const _kernel_oserror *err = _swix(OS_CallAfter, _INR(0,2), cs_delay, cb, context);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+    return 0;
+}
+
+int os_call_every(unsigned int cs_interval, os_callback_fn cb, void *context) {
+    if (!cb || cs_interval < 2) { // CallEvery requires R0 ≥ 1 → min delay = 2cs
+        errno = EINVAL;
+        return -1;
+    }
+
+    const _kernel_oserror *err = _swix(OS_CallEvery, _INR(0,2), cs_interval - 1, cb, context);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+    return 0;
+}
+
+int os_call_timer_cancel(os_callback_fn cb, void *context) {
+    if (!cb) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    const _kernel_oserror *err = _swix(OS_RemoveTickerEvent, _INR(0,1), cb, context);
+    if (err) {
+        errno = os_map_error(err->errnum);
+        return -1;
+    }
+    return 0;
 }

@@ -5,8 +5,30 @@
 #pragma include_only_once
 #endif
 
-int os_event_claim(int event_number, void (*handler)(int, void *), void *pw);
-int os_event_release(int event_number, void (*handler)(int, void *), void *pw);
-int os_event_generate(int event_number, int data, int x, int y);
+typedef void (*os_event_handler_fn)(int event_number, void *context);
+
+typedef struct {
+    int in_use;
+    os_event_handler_fn handler;
+    void *context;
+} event_entry_t;
+
+typedef void (*os_event_handler_fn)(int event_number, void *context);
+typedef void (*os_callback_fn)(void *context);
+
+// EventV handler API
+int os_event_subscribe(int event_number, os_event_handler_fn handler, void *context);
+int os_event_unsubscribe(int event_number);
+int os_event_generate(int event_number, int data, int x, int y); // Not supported
+
+// Transient CallBack API
+int os_callback_schedule(os_callback_fn cb, void *context);
+int os_callback_cancel(os_callback_fn cb, void *context);
+
+// Timed Callbacks (centiseconds)
+int os_call_after(unsigned int cs_delay, os_callback_fn cb, void *context);
+int os_call_every(unsigned int cs_interval, os_callback_fn cb, void *context);
+int os_call_timer_cancel(os_callback_fn cb, void *context);
+
 
 #endif /* __LIBOS_EVENT_H__ */
