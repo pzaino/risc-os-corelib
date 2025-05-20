@@ -10,3 +10,4 @@
   - [Process Management](./proc.md)
   - [Terminal I/O](./term.md)
   - [File paths string handling](./path.md)
+  - [System Information](./sys.md)

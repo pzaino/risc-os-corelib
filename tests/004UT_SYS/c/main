@@ -1,0 +1,55 @@
+#ifdef __CC_NORCROFT
+#include "libOS:sys.h"
+#else
+#include "../../!LibOS/h/sys"
+#endif
+
+#include "../test_lib.h"
+#include "main.h"
+
+int main(void) {
+    test_failures(RESET_FAILURES);
+    write_string("Testing sys module...\n");
+
+    char buf[256];
+    struct os_utsname uts;
+
+    // --- os_uname ---
+    ASSERT_EQ(os_uname(NULL), -1, "S001: os_uname(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "S002: errno must be EINVAL");
+
+    ASSERT_EQ(os_uname(&uts), 0, "S003: os_uname must succeed");
+    printf("sysname: %s\n", uts.sysname);
+    printf("nodename: %s\n", uts.nodename);
+    printf("release: %s\n", uts.release);
+
+    ASSERT_EQ(strcmp(uts.sysname, "RISCOS"), 0, "S004: sysname must be RISCOS");
+    ASSERT_EQ(strcmp(uts.nodename, "localhost"), 0, "S005: nodename must be localhost");
+    ASSERT_EQ(strcmp(uts.machine, "ARM"), 0, "S006: machine must be ARM");
+
+    ASSERT_GT(strlen(uts.release), 0, "S007: release must not be empty");
+    ASSERT_GT(strlen(uts.version), 0, "S008: version must not be empty");
+
+    // --- os_gethostname ---
+    ASSERT_EQ(os_gethostname(NULL, 0), -1, "S009: os_gethostname(NULL,0) must fail");
+    ASSERT_EQ(errno, EINVAL, "S010: errno must be EINVAL");
+
+    ASSERT_EQ(os_gethostname(buf, sizeof(buf)), 0, "S011: os_gethostname must succeed");
+    ASSERT_EQ(strcmp(buf, "localhost"), 0, "S012: hostname must be localhost");
+
+    // --- UID/GID functions ---
+    ASSERT_EQ(os_getuid(), 0, "S013: os_getuid must return 0");
+    ASSERT_EQ(os_geteuid(), 0, "S014: os_geteuid must return 0");
+    ASSERT_EQ(os_getgid(), 0, "S015: os_getgid must return 0");
+    ASSERT_EQ(os_getegid(), 0, "S016: os_getegid must return 0");
+
+    // --- os_getlogin ---
+    ASSERT_EQ(strcmp(os_getlogin(), "riscos"), 0, "S017: os_getlogin must return riscos");
+
+    if (test_failures(GET_FAILURES) == 0)
+        write_string("PASS: sys module\n");
+    else
+        write_string("FAIL: sys module\n");
+
+    return test_failures(GET_FAILURES);
+}

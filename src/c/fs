@@ -425,8 +425,6 @@ int os_close_path(const char *path) {
     return -1;
 }
 
-
-
 // Read from a file descriptor into a buffer
 int os_read(int fd, void *buf, const size_t count) {
     if (fd < 0 || !buf || count == 0) {
@@ -443,6 +441,43 @@ int os_read(int fd, void *buf, const size_t count) {
         return -1;
     }
     return (int)(count - not_read);
+}
+
+int os_read_and_close(int fd, void **buf_out, size_t *len_out) {
+    if (fd < 0 || !buf_out || !len_out) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    *buf_out = NULL;
+    *len_out = 0;
+
+    os_stat_t st;
+    if (os_stat_fd(fd, &st) < 0) {
+        os_close(fd);
+        return -1;
+    }
+
+    size_t size = st.st_size;
+    void *buf = malloc(size + 1); // +1 for optional null terminator
+    if (!buf) {
+        os_close(fd);
+        errno = ENOMEM;
+        return -1;
+    }
+
+    int n = os_read(fd, buf, size);
+    os_close(fd);
+
+    if (n < 0) {
+        free(buf);
+        return -1;
+    }
+
+    ((char *)buf)[n] = '\0'; // Null-terminate just in case (optional)
+    *buf_out = buf;
+    *len_out = n;
+    return n;
 }
 
 // Write to a file descriptor from a buffer

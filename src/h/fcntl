@@ -4,13 +4,13 @@
 #ifdef __CC_NORCROFT
 #pragma include_only_once
 #endif
-
+ 
 #include "common.h"
 
 // Access modes
-#define O_RDONLY 0
-#define O_WRONLY 1
-#define O_RDWR   2
+#define O_RDONLY  0
+#define O_WRONLY  1
+#define O_RDWR    2
 #define O_ACCMODE 3
 
 // Creation flags

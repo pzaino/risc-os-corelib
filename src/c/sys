@@ -2,6 +2,9 @@
 
 #include "common.h"
 #include "sys.h"
+#include "fs.h"
+#include "fcntl.h"
+#include "proc.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -14,28 +17,22 @@ int os_uname(struct os_utsname *name) {
         return -1;
     }
 
-    static char version[256];
+    // Fallback values
+    strncpy(name->sysname,  "RISCOS",    sizeof(name->sysname) - 1);
+    strncpy(name->nodename, "localhost", sizeof(name->nodename) - 1);
+    strncpy(name->machine,  "ARM",       sizeof(name->machine) - 1);
+    strncpy(name->release,  "unknown",   sizeof(name->release) - 1);
+    strncpy(name->version,  "unknown",   sizeof(name->version) - 1);
 
-    const _kernel_oserror *err = _swix(OS_ReadVarVal,
-                                       _INR(0, 4) | _OUT(1),
-                                       "OSVersion",   // r0: variable name
-                                       version,       // r1: output buffer
-                                       sizeof(version), // r2: buffer size
-                                       0x01,          // r3: return string
-                                       0);            // r4: flags
-    if (err) {
-        errno = os_map_error(err->errnum);
-        return -1;
-    }
+    // Try to get version using *FX 0 (redirected to file or buffer)
+    const _kernel_oserror *err = _swix(OS_Byte, _INR(0,1) | _OUT(0),
+                                       0, 0);
+    
+    // Set both release and version fields
+    strncpy(name->release, err->errmess, sizeof(name->release) - 1);
+    strncpy(name->version, err->errmess, sizeof(name->version) - 1);
 
-    // Populate uname fields with defaults
-    strncpy(name->sysname,  "RISCOS",   sizeof(name->sysname) - 1);
-    strncpy(name->nodename, "localhost",sizeof(name->nodename) - 1);
-    strncpy(name->release,  version,    sizeof(name->release) - 1);
-    strncpy(name->version,  version,    sizeof(name->version) - 1);
-    strncpy(name->machine,  "ARM",      sizeof(name->machine) - 1);
-
-    // Ensure NUL termination
+    // Ensure null-termination
     name->sysname[sizeof(name->sysname) - 1]   = '\0';
     name->nodename[sizeof(name->nodename) - 1] = '\0';
     name->release[sizeof(name->release) - 1]   = '\0';
@@ -44,6 +41,7 @@ int os_uname(struct os_utsname *name) {
 
     return 0;
 }
+
 
 // Get hostname (same as nodename from uname)
 int os_gethostname(char *name, size_t len) {
