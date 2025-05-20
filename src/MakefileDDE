@@ -3,7 +3,7 @@
 COMPONENT = libOS
 
 # This is a list of source/object files for the library
-OBJS = common byte env event fs heap mem module path proc service sys term time
+OBJS = common byte env event fs heap mem module path safe_str proc service sys term time
 
 include CLibrary
 cflags+=-Wp+g

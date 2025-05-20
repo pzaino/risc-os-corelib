@@ -28,6 +28,10 @@
 
 #include "common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int os_putchar(int c);
 int os_getchar(void);
 int os_isatty(int fd);
@@ -35,5 +39,8 @@ int os_tcgetattr(int fd, void *termios_p);
 int os_tcsetattr(int fd, int optional_actions, const void *termios_p);
 const char *os_ttyname(int fd);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __LIBOS_TERM_H__ */

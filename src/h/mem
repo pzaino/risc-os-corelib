@@ -8,6 +8,10 @@
 #include "common.h"
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void *os_malloc(size_t size);
 void os_free(void *ptr);
 long os_mem_free(void);
@@ -15,5 +19,9 @@ void *os_calloc(size_t nmemb, size_t size);
 void *os_realloc(void *ptr, size_t size);
 int os_posix_memalign(void **memptr, size_t alignment, size_t size);
 void *os_aligned_alloc(size_t alignment, size_t size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __LIBOS_MEM_H__ */

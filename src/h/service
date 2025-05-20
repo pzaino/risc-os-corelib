@@ -7,8 +7,16 @@
 
 #include "common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int os_service_call(int number, int *regs);
 int os_add_callback(void (*callback)(void));
 int os_remove_callback(void (*callback)(void));
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __LIBOS_SERVICE_H__ */

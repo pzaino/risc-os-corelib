@@ -9,6 +9,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct os_utsname {
     char sysname[32];
     char nodename[32];
@@ -25,5 +29,9 @@ int os_geteuid(void);
 int os_getgid(void);
 int os_getegid(void);
 char *os_getlogin(void); 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __LIBOS_SYS_H__ */

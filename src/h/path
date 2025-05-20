@@ -29,6 +29,10 @@
 #include "common.h"
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int os_path_is_absolute(const char *path);
 char *os_path_join(const char *a, const char *b, char *out, size_t maxlen);
 const char *os_path_basename(const char *path);
@@ -36,5 +40,9 @@ char *os_path_dirname(const char *path, char *out, size_t maxlen);
 char *os_path_to_riscos(const char *unix_path, char *out, size_t maxlen);
 char *os_path_to_unix(const char *riscos_path, char *out, size_t maxlen);
 int os_realpath(const char *in, char *out, size_t size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __LIBOS_PATH_H__ */

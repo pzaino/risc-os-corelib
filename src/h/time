@@ -7,6 +7,10 @@
 
 #include "common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef long time_t;
 
 typedef struct timeval {
@@ -29,6 +33,8 @@ int os_clock_gettime(int clk_id, struct timespec *tp);
 unsigned int os_sleep(unsigned int seconds);
 int os_nanosleep(const struct timespec *req, struct timespec *rem);
 
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __LIBOS_TIME_H__ */

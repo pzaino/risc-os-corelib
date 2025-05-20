@@ -1,0 +1,450 @@
+/* safe_str.c - Safe string functions and helpers (libOS) */
+
+#include "common.h"
+#include "safe_str.h"
+
+#include <stdlib.h>
+#include <stdio.h>
+
+// Required for when not using CLib
+// TODO: These 3 needs to be rewritten for better performance
+
+// Safe memory copy function
+void *safe_memcpy(void *dst, const void *src, size_t n) {
+    if (!dst || !src || n == 0) return dst;
+
+    unsigned char *d = (unsigned char *)dst;
+    const unsigned char *s = (const unsigned char *)src;
+
+    for (size_t i = 0; i < n; ++i) {
+        d[i] = s[i];
+    }
+
+    return dst;
+}
+
+// Safe memory move function
+void *safe_memmove(void *dst, const void *src, size_t n) {
+    if (!dst || !src || n == 0) return dst;
+
+    unsigned char *d = (unsigned char *)dst;
+    const unsigned char *s = (const unsigned char *)src;
+
+    if (d < s) {
+        for (size_t i = 0; i < n; ++i)
+            d[i] = s[i];
+    } else if (d > s) {
+        for (size_t i = n; i > 0; --i)
+            d[i - 1] = s[i - 1];
+    }
+
+    return dst;
+}
+
+// Safe memory copy with zeroing
+void *safe_memset(void *dst, int val, size_t n) {
+    if (!dst || n == 0) return dst;
+
+    unsigned char *d = (unsigned char *)dst;
+    for (size_t i = 0; i < n; ++i) {
+        d[i] = (unsigned char)val;
+    }
+
+    return dst;
+}
+
+static size_t find_null_internal(const char *str, size_t maxlen, int flags) {
+    if (!str || maxlen == 0) {
+        return 0;
+    }
+    if (*str == '\0') {
+        return 0; // Empty string
+    }
+
+    // Check if str is null terminated
+    size_t len = maxlen < LIBOS_MAX_STR_LEN ? maxlen : LIBOS_MAX_STR_LEN;
+    size_t i;
+    for (i = 0; i < len; ++i) {
+        if (str[i] == '\0')
+            return i;
+    }
+    if (flags & 0x01 && i <= len) { // Return i if no null where foudn within maxlen
+        return i;
+    }
+    errno = ENAMETOOLONG;
+    return 0;
+}
+
+// Find the first null character in a string, up to maxlen characters
+// Returns the index of the null character or 0 if not found
+// Sets errno to ENAMETOOLONG if the string is not null-terminated within maxlen
+size_t find_null(const char *str, size_t maxlen) {
+    return find_null_internal(str, maxlen, 0);
+}
+
+// Safe string length function
+size_t safe_strnlen(const char *str, size_t maxlen) {
+    if (!str || maxlen == 0) {
+        return 0;
+    }
+    if (*str == '\0') {
+        return 0; // Empty string
+    }
+
+    // If find_null returns 0, it means the string is not null-terminated
+    // within maxlen, so we return 0 for safety
+    return find_null_internal(str, maxlen, 1);
+}
+
+char *safe_strncpy(char *dest, const char *src, size_t dest_size) {
+    if (!dest || !src || dest_size == 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    if (dest_size > LIBOS_MAX_STR_LEN) {
+        dest_size = LIBOS_MAX_STR_LEN;
+    }
+
+    size_t len = safe_strnlen(src, dest_size);
+
+    safe_memcpy(dest, src, len);
+    dest[len] = '\0'; // Ensure null termination
+    return dest;
+}
+
+int safe_isspace(const int c) {
+    return (c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
+            c == '\f' || c == '\v');
+}
+
+int safe_tolower(const int c) {
+    if (c >= 'A' && c <= 'Z') {
+        return c + ('a' - 'A');
+    }
+    return c;
+}
+
+int safe_isdigit(const int c) {
+    return (c >= '0' && c <= '9');
+}
+
+int safe_ispunct(const int c) {
+    return (c >= '!' && c <= '/') || (c >= ':' && c <= '@') ||
+           (c >= '[' && c <= '`') || (c >= '{' && c <= '~');
+}
+
+int safe_isalnum(const int c) {
+    return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') ||
+           (c >= 'a' && c <= 'z');
+}
+
+// Returns:
+//   0  if characters match under flags
+//  <0  to skip c1 (left)
+//  >0  to skip c2 (right)
+// Non-zero + non-skip → actual mismatch
+static int compare_flagged_chars(char c1, char c2, int flags) {
+    // Prioritizes skipping c1 over c2 if both chars are ignorable under the same flag
+    if (flags & IGNORE_WHITESPACE) {
+        if (safe_isspace(c1)) return -1;
+        if (safe_isspace(c2)) return 1;
+    }
+
+    if (flags & IGNORE_PUNCT) {
+        if (safe_ispunct(c1)) return -1;
+        if (safe_ispunct(c2)) return 1;
+    }
+
+    if (flags & IGNORE_DIGITS) {
+        if (safe_isdigit(c1)) return -1;
+        if (safe_isdigit(c2)) return 1;
+    }
+
+    if (flags & IGNORE_SPECIAL) {
+        if (!safe_isalnum(c1)) return -1;
+        if (!safe_isalnum(c2)) return 1;
+    }
+
+    if (flags & IGNORE_CASE) {
+        c1 = safe_tolower(c1);
+        c2 = safe_tolower(c2);
+    }
+
+    return (unsigned char)c1 - (unsigned char)c2;
+}
+
+// Safe string comparision function
+// flags is a bitmask of the following:
+// 0x01: Ignore case
+// 0x02: Ignore whitespace
+// 0x04: Ignore punctuation
+// 0x08: Ignore digits
+// 0x10: Ignore special characters
+// 0x20: Match prefix
+// 0x40: Match suffix
+int safe_strcmp(const char *s1, const char *s2, int flags) {
+    if (!s1 || !s2) {
+        errno = EINVAL;
+        return -2;
+    }
+
+    size_t len1 = safe_strnlen(s1, LIBOS_MAX_STR_LEN);
+    size_t len2 = safe_strnlen(s2, LIBOS_MAX_STR_LEN);
+
+    // Adjust s1 for suffix comparison
+    if (flags & MATCH_SUFFIX) {
+        if (len2 > len1) return -1;
+        s1 += len1 - len2;
+        len1 = len2;
+    }
+
+    size_t i1 = 0, i2 = 0;
+
+    while (i1 < len1 && i2 < len2) {
+        int cmp = compare_flagged_chars(s1[i1], s2[i2], flags);
+        if (cmp == 0) {
+            i1++;
+            i2++;
+        } else if (cmp < 0) {
+            i1++;
+        } else if (cmp > 0) {
+            i2++;
+        }
+    }
+
+    // For prefix/suffix match modes, partial comparison is OK
+    if (flags & (MATCH_PREFIX | MATCH_SUFFIX)) {
+        return 0;
+    }
+
+    // Check for remaining non-ignored characters in s1
+    while (i1 < len1) {
+        if (!(flags & IGNORE_WHITESPACE) || !safe_isspace(s1[i1]))
+            return 1;
+        i1++;
+    }
+
+    // Check for remaining non-ignored characters in s2
+    while (i2 < len2) {
+        if (!(flags & IGNORE_WHITESPACE) || !safe_isspace(s2[i2]))
+            return -1;
+        i2++;
+    }
+
+    return 0;
+}
+
+// Safe check if a string begins with:
+int safe_strstart(const char *str, const char *prefix, int flags) {
+    return safe_strcmp(str, prefix, flags | MATCH_PREFIX) == 0;
+}
+
+// same as safe_strstart but has no flags
+int safe_strhasprefix(const char *str, const char *prefix) {
+    return safe_strcmp(str, prefix, MATCH_PREFIX) == 0;
+}
+
+// Safe check if a string ends with (and support safe_strcmp flags)
+int safe_strend(const char *str, const char *suffix, int flags) {
+    return safe_strcmp(str, suffix, flags | MATCH_SUFFIX) == 0;
+}
+
+// same as safe_strend but has no flags
+int safe_strhassuffix(const char *str, const char *suffix) {
+    return safe_strcmp(str, suffix, MATCH_SUFFIX) == 0;
+}
+
+// Safe string concatenation function with size limit
+char *safe_strncat(char *dest, const char *src, size_t size) {
+    if (!dest || !src ) {
+        errno = EINVAL;
+        return dest;
+    }
+
+    if (size == 0) {
+        return dest;
+    }
+
+    if (size > LIBOS_MAX_STR_LEN) {
+        size = LIBOS_MAX_STR_LEN;
+    }
+
+    size_t dest_len = safe_strnlen(dest, size);
+    if (dest_len >= size) {
+        errno = ENAMETOOLONG;
+        return dest;
+    }
+
+    size_t i = dest_len;
+    size_t j = 0;
+
+    while (i < size - 1 && src[j] != '\0') {
+        dest[i++] = src[j++];
+    }
+
+    dest[i] = '\0';
+    return dest;
+}
+
+// Safe string concatenation function
+char *safe_strcat(char *dest, const char *src) {
+    if (!dest || !src ) {
+        errno = EINVAL;
+        return dest;
+    }
+
+    return safe_strncat(dest, src, LIBOS_MAX_STR_LEN);
+}
+
+// Safe string copy function
+char *safe_strndup(const char *src, size_t maxlen) {
+    if (!src || maxlen == 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    size_t len = safe_strnlen(src, maxlen);
+    char *copy = malloc(len + 1);
+    if (!copy) {
+        errno = ENOMEM;
+        return NULL;
+    }
+
+    safe_memcpy(copy, src, len);
+    copy[len] = '\0';
+    return copy;
+}
+
+// Safe Trimming of leading and trailing whitespaces
+char *safe_strstrip(char *str) {
+    if (!str) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    // Trim leading space
+    char *start = str;
+    while (*start && safe_isspace(*start)) start++;
+
+    // Trim trailing space
+    char *end = start + safe_strnlen(start, LIBOS_MAX_STR_LEN);
+    while (end > start && safe_isspace(*(end - 1))) end--;
+
+    *end = '\0';
+    if (start != str)
+        safe_memmove(str, start, end - start + 1); // Include null
+    return str;
+}
+
+// Safe search for a character in a string, up to maxlen characters
+char *safe_strchrnul(const char *str, int ch, size_t maxlen) {
+    if (!str) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    for (size_t i = 0; i < maxlen && i < LIBOS_MAX_STR_LEN; i++) {
+        if (str[i] == (char)ch || str[i] == '\0') {
+            return (char *)&str[i];
+        }
+    }
+
+    errno = ENAMETOOLONG;
+    return NULL;
+}
+
+// Helper: returns 1 if character is in delimiter set
+static int is_delim(char c, const char *delim) {
+    for (; *delim != '\0'; delim++) {
+        if (c == *delim) return 1;
+    }
+    return 0;
+}
+
+// Safe reentrant string tokenization
+char *safe_strtok_r(char *str, const char *delim, char **saveptr) {
+    if (!delim || !saveptr) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    char *s = str ? str : *saveptr;
+
+    // Skip leading delimiters
+    while (*s && is_delim(*s, delim)) s++;
+
+    if (*s == '\0') {
+        *saveptr = s;
+        return NULL;
+    }
+
+    char *token_start = s;
+
+    // Find end of token
+    while (*s && !is_delim(*s, delim)) s++;
+
+    if (*s) {
+        *s = '\0';
+        *saveptr = s + 1;
+    } else {
+        *saveptr = s;
+    }
+
+    return token_start;
+}
+
+
+int safe_strisprintable(const char *str, size_t maxlen) {
+    if (!str) {
+        errno = EINVAL;
+        return 0;
+    }
+
+    for (size_t i = 0; i < maxlen && i < LIBOS_MAX_STR_LEN; i++) {
+        unsigned char c = str[i];
+        if (c == '\0') return 1;
+        if (c < 32 || c > 126) return 0;
+    }
+
+    errno = ENAMETOOLONG;
+    return 0;
+}
+
+// Safe occurence count of a character in a string, up to maxlen characters
+size_t safe_strcount(const char *str, char ch, size_t maxlen) {
+    if (!str) {
+        errno = EINVAL;
+        return 0;
+    }
+
+    size_t count = 0;
+    for (size_t i = 0; i < maxlen && i < LIBOS_MAX_STR_LEN; i++) {
+        if (str[i] == '\0') break;
+        if (str[i] == ch) count++;
+    }
+    return count;
+}
+
+// Safe string copy with zero padding
+char *safe_strcpyz(char *dest, const char *src, size_t size) {
+    if (!dest || !src || size == 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    size_t len = safe_strnlen(src, size);
+    if (len >= size) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    safe_memset(dest, 0, size);
+    safe_memcpy(dest, src, len);
+    return dest;
+}
+
+int safe_strvalid(const char *str, size_t maxlen) {
+    if (!str) return 0;
+    return find_null(str, maxlen) > 0;
+}

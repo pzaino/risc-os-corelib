@@ -72,6 +72,20 @@
 #define ENOMEM 12
 #endif
 
+#define LIBOS_MAX_STR_LEN 1024
+
+#ifndef NULL
+#define NULL ((void *)0)
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int os_map_error(int errnum);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __LIBOS_COMMON_H__ */

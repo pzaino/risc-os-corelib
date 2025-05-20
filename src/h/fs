@@ -43,6 +43,10 @@
 #define SEEK_END 2
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Replacement for struct stat using only types available in ANSI C
 typedef struct os_stat_t {
     unsigned int st_size;
@@ -100,5 +104,9 @@ int os_file_exists(const char *path);
 int os_is_dir(const char *path);
 int os_merge(const char *dest, const char *src);
 int os_split(const char *path, long offset, const char *out1, const char *out2);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __LIBOS_FS_H__ */

@@ -1,0 +1,100 @@
+#ifndef __LIBOS_SAFE_STR_H__
+#define __LIBOS_SAFE_STR_H__
+
+/*
+ * libOS - POSIX-like and SWI-safe C Library for RISC OS
+ *
+ * File: env.c
+ * Author: Paolo Fabio Zaino
+ * Copyright (c) 1998-2025 by Paolo Fabio Zaino, all rights reserved
+ * Distributed under: Mozilla Public License 2.0 (MPL-2.0)
+ *
+ * Description:
+ *   This file is part of libOS, a safe and portable ANSI C99 library that
+ *   provides POSIX-style APIs for RISC OS. It wraps RISC OS SWIs with strict
+ *   validation and aims to be CLib-independent while enabling safe development
+ *   of applications, kernel modules, and system utilities.
+ *
+ *   This source code is licensed under the terms of the Mozilla Public License
+ *   Version 2.0. You may obtain a copy of the license at:
+ *   https://www.mozilla.org/MPL/2.0/
+ *
+ *   SPDX-License-Identifier: MPL-2.0
+ */
+
+#ifdef __CC_NORCROFT
+#pragma include_only_once
+#endif
+
+#include "common.h"
+
+// Flags
+#define IGNORE_CASE        0x01
+#define IGNORE_WHITESPACE  0x02
+#define IGNORE_PUNCT       0x04
+#define IGNORE_DIGITS      0x08
+#define IGNORE_SPECIAL     0x10
+#define MATCH_PREFIX       0x20
+#define MATCH_SUFFIX       0x40
+
+#define LIBOS_MAX_STR_LEN 1024
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void *safe_memcpy(void *dst, const void *src, size_t n);
+void *safe_memmove(void *dst, const void *src, size_t n);
+void *safe_memset(void *dst, int val, size_t n);
+
+// ----------------------------
+// Core Safe String Operations
+// ----------------------------
+
+size_t find_null(const char *str, size_t maxlen);
+size_t safe_strnlen(const char *str, size_t maxlen);
+
+char *safe_strncpy(char *dest, const char *src, size_t dest_size);
+char *safe_strcpyz(char *dest, const char *src, size_t size);
+char *safe_strndup(const char *src, size_t maxlen);
+
+char *safe_strncat(char *dest, const char *src, size_t size);
+char *safe_strcat(char *dest, const char *src);
+
+int    safe_strcmp(const char *s1, const char *s2, int flags);
+int    safe_strstart(const char *str, const char *prefix, int flags);
+int    safe_strend(const char *str, const char *suffix, int flags);
+int    safe_strhasprefix(const char *str, const char *prefix);
+int    safe_strhassuffix(const char *str, const char *suffix);
+
+// ----------------------------
+// Helpers & Analysis
+// ----------------------------
+
+char  *safe_strstrip(char *str);
+char  *safe_strchrnul(const char *str, int ch, size_t maxlen);
+size_t safe_strcount(const char *str, char ch, size_t maxlen);
+int    safe_strisprintable(const char *str, size_t maxlen);
+int    safe_strvalid(const char *str, size_t maxlen);
+
+// ----------------------------
+// Tokenization
+// ----------------------------
+
+char *safe_strtok_r(char *str, const char *delim, char **saveptr);
+
+// ----------------------------
+// Character Classification
+// ----------------------------
+
+int safe_isspace(const int c);
+int safe_isdigit(const int c);
+int safe_ispunct(const int c);
+int safe_isalnum(const int c);
+int safe_tolower(const int c);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __LIBOS_SAFE_STR_H__ */

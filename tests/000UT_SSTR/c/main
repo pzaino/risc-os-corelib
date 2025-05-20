@@ -1,0 +1,95 @@
+#ifdef __CC_NORCROFT
+#include "libOS:safe_str.h"
+#else
+#include "../../!LibOS/h/safe_str.h"
+#endif
+
+#include "../test_lib.h"
+#include "main.h"
+#include <stdio.h>
+
+int main(void) {
+    test_failures(RESET_FAILURES);
+    write_string("Testing safe_str module...\n");
+
+    // Test 1: safe_strnlen and find_null
+    ASSERT_EQ(safe_strnlen("abc", 10), 3, "S100: safe_strnlen normal case");
+    ASSERT_EQ(find_null("abc", 10), 3, "S101: find_null normal case");
+    ASSERT_EQ(safe_strnlen("abc", 2), 2, "S102: safe_strnlen maxlen clamp");
+    ASSERT_EQ(find_null("abc", 2), 0, "S103: find_null failure triggers");
+
+    // Test 2: safe_strncpy and safe_strndup
+    char buf[10];
+    // ASSERT_OK compares with 0, so we need to negate the result
+    ASSERT_OK(!(safe_strncpy(buf, "hi", sizeof(buf)) != NULL), "S110: safe_strncpy success");
+    ASSERT_EQ(strcmp(buf, "hi"), 0, "S111: safe_strncpy copies content");
+
+    char *dup = safe_strndup("hello", 5);
+    ASSERT_NE(dup, NULL, "S112: safe_strndup allocates");
+    ASSERT_EQ(strcmp(dup, "hello"), 0, "S113: safe_strndup content");
+    free(dup);
+
+    // Test 3: safe_strcmp and flag variants
+    ASSERT_EQ(safe_strcmp("Test", "test", IGNORE_CASE), 0, "S120: case-insensitive match");
+    ASSERT_EQ(safe_strcmp("T est", "test", IGNORE_WHITESPACE | IGNORE_CASE), 0, "S121: ignore space and case");
+    ASSERT_NE(safe_strcmp("abc", "def", 0), 0, "S122: strcmp mismatch");
+
+    // Test 4: safe_strstart / end / hasprefix / hassuffix
+    ASSERT_EQ(safe_strstart("foobar", "foo", 0), 1, "S130: safe_strstart");
+    ASSERT_EQ(safe_strend("foobar", "bar", 0), 1, "S131: safe_strend");
+    ASSERT_EQ(safe_strhasprefix("foobar", "foo"), 1, "S132: safe_strhasprefix");
+    ASSERT_EQ(safe_strhassuffix("foobar", "bar"), 1, "S133: safe_strhassuffix");
+
+    // Test 5: safe_strncat and safe_strcat
+    char buf2[16] = "hi";
+    // ASSERT_OK compares with 0, so we need to negate the result
+    ASSERT_OK(!(safe_strncat(buf2, " there", sizeof(buf2)) != NULL), "S140: safe_strncat");
+    ASSERT_EQ(strcmp(buf2, "hi there"), 0, "S141: safe_strncat content");
+
+    char buf3[16] = "safe";
+    // ASSERT_OK compares with 0, so we need to negate the result
+    ASSERT_OK(!(safe_strcat(buf3, "_cat") != NULL), "S142: safe_strcat");
+    ASSERT_EQ(strcmp(buf3, "safe_cat"), 0, "S143: safe_strcat content");
+
+    // Test 6: safe_strstrip
+    char buf4[16] = "  padded  ";
+    ASSERT_EQ(strcmp(safe_strstrip(buf4), "padded"), 0, "S150: safe_strstrip trims");
+
+    // Test 7: safe_strchrnul
+    ASSERT_EQ(*safe_strchrnul("abc", 'c', 10), 'c', "S160: safe_strchrnul finds");
+    ASSERT_EQ(*safe_strchrnul("abc", 'x', 10), '\0', "S161: safe_strchrnul fallback");
+
+    // Test 8: safe_strcount
+    ASSERT_EQ(safe_strcount("a,b,c", ',', 10), 2, "S170: safe_strcount counts commas");
+
+    // Test 9: safe_strcpyz
+    char buf5[8];
+    // ASSERT_OK compares with 0, so we need to negate the result
+    ASSERT_OK(!(safe_strcpyz(buf5, "foo", sizeof(buf5)) != NULL), "S180: safe_strcpyz success");
+    ASSERT_EQ(strcmp(buf5, "foo"), 0, "S181: safe_strcpyz content");
+    ASSERT_EQ(buf5[7], 0, "S182: safe_strcpyz zero-padded");
+
+    // Test 10: safe_strvalid and safe_strisprintable
+    ASSERT_EQ(safe_strvalid("ok", 10), 1, "S190: safe_strvalid pass");
+    ASSERT_EQ(safe_strisprintable("hi!", 10), 1, "S191: printable");
+    ASSERT_EQ(safe_strisprintable("hi\x01", 10), 0, "S192: non-printable");
+
+    // Test 11: safe_strtok_r
+    char mutable[32] = "a,b,c";
+    char *save;
+    char *tok = safe_strtok_r(mutable, ",", &save);
+    ASSERT_EQ(strcmp(tok, "a"), 0, "S200: strtok first");
+    tok = safe_strtok_r(NULL, ",", &save);
+    ASSERT_EQ(strcmp(tok, "b"), 0, "S201: strtok second");
+    tok = safe_strtok_r(NULL, ",", &save);
+    ASSERT_EQ(strcmp(tok, "c"), 0, "S202: strtok third");
+    tok = safe_strtok_r(NULL, ",", &save);
+    ASSERT_EQ(tok, NULL, "S203: strtok end");
+
+    if (test_failures(GET_FAILURES) == 0)
+        write_string("PASS: safe_str module\n");
+    else
+        write_string("FAIL: safe_str module\n");
+
+    return test_failures(GET_FAILURES);
+}

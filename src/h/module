@@ -7,9 +7,17 @@
 
 #include "common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void *os_module_load(const char *filename);
 int os_module_unload(const char *name);
 int os_module_ensure(const char *name);
 const char *os_module_list(const char *prev);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __LIBOS_MEM_H__ */

@@ -7,6 +7,10 @@
 
 #include "common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef void (*os_event_handler_fn)(int event_number, void *context);
 typedef void (*os_callback_fn)(void *context);
 
@@ -30,5 +34,8 @@ int os_call_after(unsigned int cs_delay, os_callback_fn cb, void *context);
 int os_call_every(unsigned int cs_interval, os_callback_fn cb, void *context);
 int os_call_timer_cancel(os_callback_fn cb, void *context);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __LIBOS_EVENT_H__ */
