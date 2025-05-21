@@ -5,6 +5,7 @@ ux-src/
 src/o/
 src/oz/
 **/.DS_Store
+src/s/
 
 # Object files
 *.o

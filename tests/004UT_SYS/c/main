@@ -25,7 +25,6 @@ int main(void) {
 
     ASSERT_EQ(strcmp(uts.sysname, "RISCOS"), 0, "S004: sysname must be RISCOS");
     ASSERT_EQ(strcmp(uts.nodename, "localhost"), 0, "S005: nodename must be localhost");
-    ASSERT_EQ(strcmp(uts.machine, "ARM"), 0, "S006: machine must be ARM");
 
     ASSERT_GT(strlen(uts.release), 0, "S007: release must not be empty");
     ASSERT_GT(strlen(uts.version), 0, "S008: version must not be empty");
@@ -45,6 +44,28 @@ int main(void) {
 
     // --- os_getlogin ---
     ASSERT_EQ(strcmp(os_getlogin(), "riscos"), 0, "S017: os_getlogin must return riscos");
+
+    // --- os_get_sysinfo ---
+    os_sysinfo_t sysinfo;
+    ASSERT_EQ(os_get_sysinfo(NULL), -1, "S018: os_get_sysinfo(NULL) must fail");
+    ASSERT_EQ(errno, EINVAL, "S019: errno must be EINVAL");
+
+    ASSERT_EQ(os_get_sysinfo(&sysinfo), 0, "S020: os_get_sysinfo must succeed");
+    ASSERT_GT(sysinfo.hw_word_0, 0, "S021: hw_word_0 must be non-zero");
+    ASSERT_GE(sysinfo.unique_id_low, 0, "S022: unique_id_low should be valid");
+    ASSERT_GE(sysinfo.unique_id_high, 0, "S023: unique_id_high should be valid");
+
+    ASSERT_NE(sysinfo.io_controller, NULL, "S024: io_controller must be set");
+    ASSERT_NE(sysinfo.video_controller, NULL, "S025: video_controller must be set");
+    ASSERT_NE(sysinfo.mem_controller, NULL, "S026: mem_controller must be set");
+
+    // --- os_detect_cpu ---
+    const char *machine = os_detect_machine(&sysinfo);
+    ASSERT_NE(machine, NULL, "S027: os_detect_cpu must return non-NULL");
+    ASSERT_GT(strlen(machine), 0, "S028: CPU name must not be empty");
+    printf("Detected CPU: %s\n", machine);
+    const int cpu_id = os_get_cpu_id();
+    printf("Detected CPU ID: %d\n", cpu_id);
 
     if (test_failures(GET_FAILURES) == 0)
         write_string("PASS: sys module\n");

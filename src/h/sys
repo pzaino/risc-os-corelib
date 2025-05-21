@@ -34,6 +34,35 @@
 extern "C" {
 #endif
 
+#define SYS_STR_SHORT 16
+#define SYS_STR_LONG  64
+
+typedef struct {
+    // Raw register values
+    int hw_word_0;
+    int hw_word_1;
+    int hw_word_2;
+    int unique_id_low;
+    int unique_id_high;
+
+    // Decoded fields (safe writable buffers)
+    char special_chip[SYS_STR_SHORT];
+    char io_controller[SYS_STR_SHORT];
+    char mem_controller[SYS_STR_SHORT];
+    char video_controller[SYS_STR_SHORT];
+    char io_chip[SYS_STR_SHORT];
+    char lcd_controller[SYS_STR_SHORT];
+    char iomd_variant[SYS_STR_SHORT];
+    char vidc_variant[SYS_STR_SHORT];
+    char hal_device[SYS_STR_LONG];
+
+    // Booleans
+    int iic_fast;
+    int idle_stops_clk;
+} os_sysinfo_t;
+
+
+
 typedef struct os_utsname {
     char sysname[32];
     char nodename[32];
@@ -44,6 +73,9 @@ typedef struct os_utsname {
 
 int os_uname(struct os_utsname *name);
 int os_gethostname(char *name, size_t len);
+int os_get_sysinfo(os_sysinfo_t *info);
+int os_get_cpu_id(void);
+const char *os_detect_machine(const os_sysinfo_t *info);
 
 int os_getuid(void);
 int os_geteuid(void);

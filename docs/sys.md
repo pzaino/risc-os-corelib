@@ -16,7 +16,7 @@ To use these functions, include the header file in your code:
 
 ### `int os_uname(struct os_utsname *name);`
 
-Fill out a `struct os_utsname` with system information.
+Fill out a `struct os_utsname` with system software information.
 
 * Returns `0` on success.
 * Returns `-1` and sets `errno` on invalid input.
@@ -27,6 +27,27 @@ Populates the following fields:
 * `nodename`: Always "localhost"
 * `machine`: Always "ARM"
 * `release` and `version`: Retrieved from `OS_Byte` call (fallbacks to "unknown")
+
+### `int os_getsysinfo(os_sysinfo_t *info);`
+
+Retrieve system hardware information.
+
+* `info` is a pointer to a `struct os_sysinfo`.
+* Returns `0` on success, `-1` on failure.
+* Fills `info` with system information using `OS_ReadSysInfo`.
+
+```c
+typedef struct {
+    int has_ioeb;
+    int has_82c710;
+    int has_lcd;
+    int chip_flags;   // Original R0 value
+    int chip_info1;   // Original R1
+    int chip_info2;   // Original R2
+    int unique_id_0;  // Original R3
+    int unique_id_1;  // Original R4
+} os_sysinfo_t;
+```
 
 ### `int os_gethostname(char *name, size_t len);`
 

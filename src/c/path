@@ -25,10 +25,10 @@
 #include "path.h"
 #include "safe_str.h"
 
-#include <string.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
+//#include <string.h>
+//#include <stddef.h>
+//#include <stdlib.h>
+//#include <stdio.h>
 
 int os_realpath(const char *in, char *out, size_t size) {
     if (!in || !out || size == 0) {
@@ -67,23 +67,39 @@ int os_path_is_absolute(const char *path) {
     return 0;
 }
 
-// Join two paths with a dot (.) separator
+// Join a + "." + b manually with safety
 char *os_path_join(const char *a, const char *b, char *out, size_t maxlen) {
     if (!a || !b || !out || maxlen == 0) {
         errno = EINVAL;
         return NULL;
     }
 
-    int need_sep = (a[0] != '\0' && a[strlen(a) - 1] != '.');
+    size_t a_len = safe_strnlen(a, maxlen);
+    size_t b_len = safe_strnlen(b, maxlen);
 
-    int written = snprintf(out, maxlen, "%s%s%s", a, need_sep ? "." : "", b);
-    if (written < 0 || (size_t)written >= maxlen) {
+    int need_sep = (a_len > 0 && a[a_len - 1] != '.');
+    size_t total = a_len + (need_sep ? 1 : 0) + b_len;
+
+    if (total + 1 > maxlen) {
         errno = ENAMETOOLONG;
         return NULL;
     }
 
+    size_t pos = 0;
+    safe_memcpy(out + pos, a, a_len);
+    pos += a_len;
+
+    if (need_sep) {
+        out[pos++] = '.';
+    }
+
+    safe_memcpy(out + pos, b, b_len);
+    pos += b_len;
+
+    out[pos] = '\0';
     return out;
 }
+
 
 // Get the base name of a path (the last component after the last dot)
 const char *os_path_basename(const char *path) {
@@ -93,7 +109,7 @@ const char *os_path_basename(const char *path) {
     }
 
     size_t len = safe_strnlen(path, LIBOS_MAX_STR_LEN);
-    const char *last = safe_find_last_chr(path, '.', len);
+    const char *last = safe_strrchr(path, '.', len, 0);
     return last ? last + 1 : path;
 }
 
@@ -105,7 +121,7 @@ char *os_path_dirname(const char *path, char *out, size_t maxlen) {
     }
 
     size_t path_len = safe_strnlen(path, OS_MAX_PATH_LEN);
-    const char *last = safe_find_last_chr(path, '.', path_len);
+    const char *last = safe_strrchr(path, '.', path_len, 0);
 
     if (!last) {
         // No dot found, return "."

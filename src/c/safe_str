@@ -195,16 +195,7 @@ static int compare_flagged_chars(char c1, char c2, int flags) {
     return (unsigned char)c1 - (unsigned char)c2;
 }
 
-// Safe string comparision function
-// flags is a bitmask of the following:
-// 0x01: Ignore case
-// 0x02: Ignore whitespace
-// 0x04: Ignore punctuation
-// 0x08: Ignore digits
-// 0x10: Ignore special characters
-// 0x20: Match prefix
-// 0x40: Match suffix
-int safe_strcmp(const char *s1, const char *s2, int flags) {
+int safe_strncmp(const char *s1, const char *s2, size_t maxlen, int flags) {
     if (!s1 || !s2) {
         errno = EINVAL;
         return -2;
@@ -213,8 +204,12 @@ int safe_strcmp(const char *s1, const char *s2, int flags) {
     // Filters invalid values
     flags &= 0x7F; // Only keep the first 7 bits
 
-    size_t len1 = safe_strnlen(s1, LIBOS_MAX_STR_LEN);
-    size_t len2 = safe_strnlen(s2, LIBOS_MAX_STR_LEN);
+    if ((maxlen == 0) || (maxlen > LIBOS_MAX_STR_LEN)) {
+        maxlen = LIBOS_MAX_STR_LEN;
+    }
+
+    size_t len1 = safe_strnlen(s1, maxlen);
+    size_t len2 = safe_strnlen(s2, maxlen);
 
     // Adjust s1 for suffix comparison
     if (flags & MATCH_SUFFIX) {
@@ -257,6 +252,25 @@ int safe_strcmp(const char *s1, const char *s2, int flags) {
     }
 
     return 0;
+}
+
+
+// Safe string comparision function
+// flags is a bitmask of the following:
+// 0x01: Ignore case
+// 0x02: Ignore whitespace
+// 0x04: Ignore punctuation
+// 0x08: Ignore digits
+// 0x10: Ignore special characters
+// 0x20: Match prefix
+// 0x40: Match suffix
+int safe_strcmp(const char *s1, const char *s2, int flags) {
+    if (!s1 || !s2) {
+        errno = EINVAL;
+        return -2;
+    }
+
+    return safe_strncmp(s1, s2, LIBOS_MAX_STR_LEN, flags);
 }
 
 
@@ -475,18 +489,22 @@ int safe_strvalid(const char *str, size_t maxlen) {
     return find_null(str, maxlen) > 0;
 }
 
-// Safe search for the last occurrence of a character in a string, up to maxlen characters
-const char *safe_find_last_chr(const char *str, char ch, size_t maxlen) {
-    if (!str || maxlen == 0) {
+// Safe search for the last occurrence of a character in a string, up to maxlen characters 
+const char *safe_strrchr(const char *str, char ch, size_t maxlen, int flags) {
+    if (!str) {
         errno = EINVAL;
         return NULL;
+    }
+
+    if (maxlen == 0) {
+        maxlen = LIBOS_MAX_STR_LEN;
     }
 
     size_t len = safe_strnlen(str, maxlen);
     const char *last = NULL;
 
     for (size_t i = 0; i < len; ++i) {
-        if (str[i] == ch) {
+        if (!compare_flagged_chars(str[i], ch, flags)) {
             last = &str[i];
         }
     }
@@ -495,19 +513,79 @@ const char *safe_find_last_chr(const char *str, char ch, size_t maxlen) {
 }
 
 // Safe strchr function
-char *safe_strchr(const char *str, int ch) {
+const char *safe_strchr(const char *str, int ch, size_t maxlen, int flags) {
     if (!str) {
         errno = EINVAL;
         return NULL;
     }
 
-    size_t len = safe_strnlen(str, LIBOS_MAX_STR_LEN);
+    if (maxlen == 0 || maxlen > LIBOS_MAX_STR_LEN) {
+        maxlen = LIBOS_MAX_STR_LEN;
+    }
+
+    size_t len = safe_strnlen(str, maxlen);
 
     for (size_t i = 0; i < len; ++i) {
-        if (str[i] == (char)ch) {
+        if (!compare_flagged_chars(str[i], ch, flags)) {
             return (char *)&str[i];
         }
     }
 
     return NULL;
+}
+
+// Safe strstr function
+const char *safe_strstr(const char *haystack, const char *needle, size_t maxlen, int flags) {
+    if (!haystack || !needle) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    if (maxlen == 0 || maxlen > LIBOS_MAX_STR_LEN) {
+        maxlen = LIBOS_MAX_STR_LEN;
+    }
+
+    size_t haystack_len = safe_strnlen(haystack, maxlen);
+    size_t needle_len = safe_strnlen(needle, maxlen);
+
+    if (needle_len == 0 || needle_len > haystack_len) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i <= haystack_len - needle_len; ++i) {
+        if (safe_strncmp(&haystack[i], needle, needle_len, flags) == 0) {
+            return (char *)&haystack[i];
+        }
+    }
+
+    return NULL;
+}
+
+// Safe strrstr function
+const char *safe_strrstr(const char *haystack, const char *needle, size_t maxlen, int flags) {
+    if (!haystack || !needle) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    if (maxlen == 0 || maxlen > LIBOS_MAX_STR_LEN) {
+        maxlen = LIBOS_MAX_STR_LEN;
+    }
+
+    size_t haystack_len = safe_strnlen(haystack, maxlen);
+    size_t needle_len = safe_strnlen(needle, maxlen);
+
+    if (needle_len == 0 || needle_len > haystack_len) {
+        return NULL;
+    }
+
+    const char *last_occurrence = NULL;
+
+    for (size_t i = 0; i <= haystack_len - needle_len; ++i) {
+        if (safe_strncmp(&haystack[i], needle, needle_len, flags) == 0) {
+            last_occurrence = &haystack[i];
+        }
+    }
+
+    return (char *)last_occurrence;
 }

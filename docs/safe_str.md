@@ -76,7 +76,7 @@ Returns pointer to first occurrence of `ch` or `\0` within `maxlen`. NULL on err
 
 Returns pointer to first occurrence of `ch` or NULL.
 
-### `const char *safe_find_last_chr(const char *str, char ch, size_t maxlen)`
+### `const char *safe_strrchr(const char *str, char ch, size_t maxlen)`
 
 Returns pointer to last occurrence of `ch` within `maxlen`, or NULL.
 

@@ -2,6 +2,8 @@
 #define __LIBOS_KSTUB_H__
 
 // Host development stub for kernel.h / swis.h compatibility
+// This is like a dummy file to avoid Linux/macOS to complain
+// about missing kernel.h / swis.h when coding.
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -104,5 +106,6 @@ static inline _kernel_oserror *_swix(int swi_number, int flags, ...)
 #define OS_CallAfter           0x0000001D
 #define OS_CallEvery           0x0000001E
 #define OS_RemoveTickerEvent   0x0000001F
+#define OS_ReadSysInfo         0x00000020
 
 #endif // __LIBOS_KSTUB_H__

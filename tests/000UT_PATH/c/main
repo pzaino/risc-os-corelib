@@ -63,9 +63,9 @@ int main(void) {
     ASSERT_EQ(strcmp(out, "foo/bar"), 0, "P063: converted = foo/bar");
 
     if (test_failures(GET_FAILURES) == 0)
-        write_string("PASS: proc module\n");
+        write_string("PASS: path module\n");
     else
-        write_string("FAIL: proc module\n");
+        write_string("FAIL: path module\n");
 
     return test_failures(GET_FAILURES);
 }

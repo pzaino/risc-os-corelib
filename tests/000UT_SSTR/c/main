@@ -12,6 +12,25 @@ int main(void) {
     test_failures(RESET_FAILURES);
     write_string("Testing safe_str module...\n");
 
+    write_string("- Testing safe memory functions...\n");
+
+    // safe_memcpy
+    unsigned char src[] = "12345678";
+    unsigned char dst[10] = {0};
+    ASSERT_EQ(safe_memcpy(dst, src, 8), dst, "SM100: safe_memcpy return");
+    ASSERT_EQ(memcmp(dst, src, 8), 0, "SM101: safe_memcpy content");
+
+    // safe_memmove with overlap
+    char movbuf[] = "abcdef";
+    ASSERT_EQ(safe_memmove(movbuf + 2, movbuf, 4), movbuf + 2, "SM110: safe_memmove overlap");
+    ASSERT_EQ(memcmp(movbuf + 2, "abcd", 4), 0, "SM111: safe_memmove overlap content");
+
+    // safe_memset
+    char zeroed[6];
+    ASSERT_EQ(safe_memset(zeroed, 0x55, 6), zeroed, "SM120: safe_memset return");
+    for (int i = 0; i < 6; ++i)
+    ASSERT_EQ(zeroed[i], 0x55, "SM121: safe_memset content");
+
     // Test 1: safe_strnlen and find_null
     ASSERT_EQ(safe_strnlen("abc", 10), 3, "S100: safe_strnlen normal case");
     ASSERT_EQ(find_null("abc", 10), 3, "S101: find_null normal case");
