@@ -4,7 +4,7 @@
 /*
  * libOS - POSIX-like and SWI-safe C Library for RISC OS
  *
- * File: env.c
+ * File: proc.h
  * Author: Paolo Fabio Zaino
  * Copyright (c) 1998-2025 by Paolo Fabio Zaino, all rights reserved
  * Distributed under: Mozilla Public License 2.0 (MPL-2.0)
