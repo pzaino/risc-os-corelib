@@ -69,7 +69,15 @@ int test_failures(int action);
     ASSERT_EQ((x), 0, msg)
 
 #define ASSERT_FAIL(x, msg) \
-    ASSERT_EQ((x), -1, msg)
+    ASSERT_EQ((x), 1, msg)
+
+#define ASSERT_ERRNO(val, msg) \
+    do { \
+        if (errno != (val)) { \
+            write_string("FAIL (errno): "); write_string(msg); write_string("\n"); \
+            test_failures(INC_FAILURES); \
+        } \
+    } while (0);
 
 // Library functions:
 

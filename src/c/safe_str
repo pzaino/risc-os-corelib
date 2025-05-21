@@ -89,7 +89,7 @@ static size_t find_null_internal(const char *str, size_t maxlen, int flags) {
         if (str[i] == '\0')
             return i;
     }
-    if (flags & 0x01 && i <= len) { // Return i if no null where foudn within maxlen
+    if ((flags & 0x01) && (i <= len)) { // Return i if no null where foudn within maxlen
         return i;
     }
     errno = ENAMETOOLONG;
@@ -118,7 +118,7 @@ size_t safe_strnlen(const char *str, size_t maxlen) {
 }
 
 char *safe_strncpy(char *dest, const char *src, size_t dest_size) {
-    if (!dest || !src || dest_size == 0) {
+    if (!dest || !src || (dest_size == 0)) {
         errno = EINVAL;
         return NULL;
     }
@@ -162,8 +162,8 @@ int safe_isalnum(const int c) {
 
 // Returns:
 //   0  if characters match under flags
-//  <0  to skip c1 (left)
-//  >0  to skip c2 (right)
+//  <0  to skip s1 (left)
+//  >0  to skip s2 (right)
 // Non-zero + non-skip → actual mismatch
 static int compare_flagged_chars(char c1, char c2, int flags) {
     // Prioritizes skipping c1 over c2 if both chars are ignorable under the same flag
@@ -210,6 +210,9 @@ int safe_strcmp(const char *s1, const char *s2, int flags) {
         return -2;
     }
 
+    // Filters invalid values
+    flags &= 0x7F; // Only keep the first 7 bits
+
     size_t len1 = safe_strnlen(s1, LIBOS_MAX_STR_LEN);
     size_t len2 = safe_strnlen(s2, LIBOS_MAX_STR_LEN);
 
@@ -234,8 +237,8 @@ int safe_strcmp(const char *s1, const char *s2, int flags) {
         }
     }
 
-    // For prefix/suffix match modes, partial comparison is OK
-    if (flags & (MATCH_PREFIX | MATCH_SUFFIX)) {
+    // For prefix/suffix match, succeed only if full s2 was matched
+    if ((flags & (MATCH_PREFIX | MATCH_SUFFIX)) && i2 == len2) {
         return 0;
     }
 
@@ -255,6 +258,7 @@ int safe_strcmp(const char *s1, const char *s2, int flags) {
 
     return 0;
 }
+
 
 // Safe check if a string begins with:
 int safe_strstart(const char *str, const char *prefix, int flags) {

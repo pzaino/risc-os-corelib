@@ -86,6 +86,80 @@ int main(void) {
     tok = safe_strtok_r(NULL, ",", &save);
     ASSERT_EQ(tok, NULL, "S203: strtok end");
 
+    // More safety tests
+
+    // NULL Pointers and zero lengths
+
+    ASSERT_EQ(safe_strnlen(NULL, 10), 0, "S300: strnlen NULL returns 0");
+    ASSERT_EQ(safe_strnlen("abc", 0), 0, "S301: strnlen 0 maxlen returns 0");
+
+    ASSERT_EQ(find_null(NULL, 10), 0, "S302: find_null NULL returns 0");
+
+    ASSERT_FAIL(safe_strncpy(NULL, "hi", 10) == NULL, "S303: strncpy NULL dest fails");
+    ASSERT_FAIL(safe_strncpy(buf, NULL, 10) == NULL, "S304: strncpy NULL src fails");
+    ASSERT_FAIL(safe_strncpy(buf, "hi", 0) == NULL, "S305: strncpy zero size fails");
+
+    ASSERT_EQ(safe_strcmp(NULL, "abc", 0), -2, "S306: strcmp NULL left");
+    ASSERT_EQ(safe_strcmp("abc", NULL, 0), -2, "S307: strcmp NULL right");
+
+    // Buffers overrun and unterminated strings
+    char raw[4] = { 'a', 'b', 'c', 'd' };  // No null
+    ASSERT_EQ(safe_strnlen(raw, 4), 4, "S310: strnlen un-terminated fails");
+    ASSERT_EQ(find_null(raw, 4), 0, "S311: find_null un-terminated fails");
+
+    ASSERT_FAIL(safe_strncpy(buf, "12345678901234567890", sizeof(buf)) != NULL, "S312: strncpy overlength fails");
+
+    // Boundary testing with truncated spaces
+
+    char buf7[4];
+    ASSERT_FAIL(safe_strncpy(buf7, "abcd", 4) != NULL, "S320: strncpy exact fill fails (no room for null)");
+
+    char buf8[5];
+    ASSERT_OK(!(safe_strncpy(buf8, "abcd", 5) != NULL), "S321: strncpy fits with null");
+    ASSERT_EQ(buf8[4], '\0', "S322: strncpy last byte is null");
+
+    // Overlapping buffers
+
+    char overlap[] = "abcdef";
+    safe_memmove(overlap + 2, overlap, 4);  // "ababcd"
+    ASSERT_EQ(overlap[2], 'a', "S330: memmove overlap copied a");
+    ASSERT_EQ(overlap[5], 'd', "S331: memmove overlap copied d");
+
+    // Zerofill checks
+
+    char padded[8];
+    safe_strcpyz(padded, "xy", sizeof(padded));
+    ASSERT_EQ(padded[2], 0, "S340: strcpyz zero padded");
+    ASSERT_EQ(padded[7], 0, "S341: strcpyz last byte zero");
+
+    // Whitespaces and specials ignoring
+
+    ASSERT_EQ(safe_strcmp("a!b", "ab", IGNORE_PUNCT), 0, "S350: ignore punctuation");
+    ASSERT_EQ(safe_strcmp("a1b", "ab", IGNORE_DIGITS), 0, "S351: ignore digits");
+    ASSERT_EQ(safe_strcmp("a#b", "ab", IGNORE_SPECIAL), 0, "S352: ignore non-alnum");
+
+    // Tokenization edge cases
+
+    char toks[] = ",,x,,y";
+    char *save2;
+    char *tok2 = safe_strtok_r(toks, ",", &save2);
+    ASSERT_EQ(strcmp(tok2, "x"), 0, "S360: strtok skip leading empty");
+    tok2 = safe_strtok_r(NULL, ",", &save2);
+    ASSERT_EQ(strcmp(tok2, "y"), 0, "S361: strtok skip trailing empty");
+    tok2 = safe_strtok_r(NULL, ",", &save2);
+    ASSERT_EQ(tok2, NULL, "S362: strtok final NULL");
+
+    // Flags misuse
+    printf("test: %d\n", safe_strcmp("abc", "xyz", 0xFF));
+    ASSERT_NE(safe_strcmp("abc", "xyz", 0xFF), 0, "S370: even all flags shouldn't match");
+
+    int result = safe_strcmp("abc", "abc", 0x8000); // invalid high bit
+    ASSERT_EQ(result, 0, "S371: unknown flags ignored, match still valid");
+
+
+    safe_strnlen(raw, 4);
+    ASSERT_ERRNO(ENAMETOOLONG, "S380: errno on unterminated str");
+
     if (test_failures(GET_FAILURES) == 0)
         write_string("PASS: safe_str module\n");
     else
