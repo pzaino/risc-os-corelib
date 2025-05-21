@@ -132,7 +132,7 @@ printf("Host: %s\n", hostname);
 ## Notes
 
 * These functions allow simple porting of POSIX programs needing basic identity and host data.
-* All fields are simulated or stubbed, as RISC OS lacks multi-user and network identity by default.
+* All fields are simulated or stubbed, as RISC OS lacks multi-user by default.
 
 ---
 
