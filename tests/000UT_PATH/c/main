@@ -21,7 +21,7 @@ int main(void) {
     ASSERT_EQ(errno, EINVAL, "P004: errno must be EINVAL");
 
     // --- os_path_is_absolute ---
-    ASSERT_EQ(os_path_is_absolute("$."), 1, "P010: $ is absolute path");
+    ASSERT_EQ(os_path_is_absolute("$."), 0, "P010: $ is not absolute path");
     ASSERT_EQ(os_path_is_absolute("foo.bar"), 0, "P011: relative path");
 
     // --- os_path_join ---

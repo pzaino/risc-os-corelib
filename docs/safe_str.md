@@ -10,67 +10,99 @@ To use these functions, include the header:
 
 ---
 
-## Memory Functions
+## Memory Utilities
 
-### `void *safe_memcpy(void *dst, const void *src, size_t n);`
+### `void *safe_memcpy(void *dst, const void *src, size_t n)`
 
-Safe alternative to `memcpy`. Copies `n` bytes.
+Copies `n` bytes from `src` to `dst`. Returns `dst`. No operation if `n == 0` or pointers are null.
 
-### `void *safe_memmove(void *dst, const void *src, size_t n);`
+### `void *safe_memmove(void *dst, const void *src, size_t n)`
 
-Safe alternative to `memmove`. Handles overlapping memory.
+Moves `n` bytes from `src` to `dst` safely, even if regions overlap. Returns `dst`.
 
-### `void *safe_memset(void *dst, int val, size_t n);`
+### `void *safe_memset(void *dst, int val, size_t n)`
 
-Safe memory zeroing or filling function.
-
----
-
-## String Validation and Length
-
-### `size_t safe_strnlen(const char *str, size_t maxlen);`
-
-Returns the length of a null-terminated string up to `maxlen`. Returns 0 if not valid.
-
-### `size_t find_null(const char *str, size_t maxlen);`
-
-Find index of first null terminator in a string. Returns 0 and sets `errno = ENAMETOOLONG` if none found.
-
-### `int safe_strvalid(const char *str, size_t maxlen);`
-
-Checks whether the string is null-terminated within `maxlen`.
+Fills `dst` with `val` for `n` bytes. Returns `dst`.
 
 ---
 
-## String Copying and Concatenation
+## String Length and Null Checking
 
-### `char *safe_strncpy(char *dest, const char *src, size_t dest_size);`
+### `size_t find_null(const char *str, size_t maxlen)`
 
-Safe string copy with enforced null-termination.
+Finds the first null character within `maxlen` and returns its index. Sets `errno = ENAMETOOLONG` if none found.
 
-### `char *safe_strndup(const char *src, size_t maxlen);`
+### `size_t safe_strnlen(const char *str, size_t maxlen)`
 
-Duplicate a string safely, up to `maxlen`.
-
-### `char *safe_strcat(char *dest, const char *src);`
-
-Safe concatenation with internal size limit.
-
-### `char *safe_strncat(char *dest, const char *src, size_t size);`
-
-Concatenate with explicit size bounds.
-
-### `char *safe_strcpyz(char *dest, const char *src, size_t size);`
-
-Zero-padded string copy up to `size`.
+Returns the length of the string up to `maxlen`. Returns 0 if not null-terminated.
 
 ---
 
-## Comparison and Matching
+## String Copy and Duplication
 
-### `int safe_strcmp(const char *s1, const char *s2, int flags);`
+### `char *safe_strncpy(char *dest, const char *src, size_t dest_size)`
 
-Compare two strings with optional flags:
+Copies at most `dest_size - 1` characters from `src` to `dest` and null-terminates. Returns `dest`.
+
+### `char *safe_strndup(const char *src, size_t maxlen)`
+
+Duplicates `src` up to `maxlen` characters into a heap-allocated string. Returns pointer or NULL.
+
+### `char *safe_strcpyz(char *dest, const char *src, size_t size)`
+
+Copies `src` into `dest` and zero-fills the remaining `size`. Ensures null-termination.
+
+---
+
+## String Concatenation
+
+### `char *safe_strncat(char *dest, const char *src, size_t size)`
+
+Appends `src` to `dest` within `size`, ensuring null-termination. Returns `dest`.
+
+### `char *safe_strcat(char *dest, const char *src)`
+
+Same as `safe_strncat`, with default size of `LIBOS_MAX_STR_LEN`.
+
+---
+
+## Search and Tokenization
+
+### `char *safe_strchrnul(const char *str, int ch, size_t maxlen)`
+
+Returns pointer to first occurrence of `ch` or `\0` within `maxlen`. NULL on error.
+
+### `char *safe_strchr(const char *str, int ch)`
+
+Returns pointer to first occurrence of `ch` or NULL.
+
+### `const char *safe_find_last_chr(const char *str, char ch, size_t maxlen)`
+
+Returns pointer to last occurrence of `ch` within `maxlen`, or NULL.
+
+### `char *safe_strtok_r(char *str, const char *delim, char **saveptr)`
+
+Reentrant version of `strtok`. Uses `saveptr` to store internal position.
+
+---
+
+## Character Classification
+
+### `int safe_isspace(int c)`, `int safe_tolower(int c)`, `int safe_isdigit(int c)`
+
+Safe character class checks. Avoids dependency on `ctype.h`.
+
+### `int safe_ispunct(int c)`, `int safe_isalnum(int c)`
+
+Extended classification helpers.
+
+---
+
+## String Comparison
+
+### `int safe_strcmp(const char *s1, const char *s2, int flags)`
+
+Compares `s1` and `s2` using bitmask `flags`:
 
 * `IGNORE_CASE`
 * `IGNORE_WHITESPACE`
@@ -80,102 +112,44 @@ Compare two strings with optional flags:
 * `MATCH_PREFIX`
 * `MATCH_SUFFIX`
 
-### `int safe_strstart(const char *str, const char *prefix, int flags);`
+Returns 0 on match, <0 or >0 otherwise.
 
-### `int safe_strhasprefix(const char *str, const char *prefix);`
+### `int safe_strstart(const char *str, const char *prefix, int flags)`
 
-Check if string starts with prefix.
+Returns non-zero if `str` starts with `prefix`, using `safe_strcmp()` with `MATCH_PREFIX`.
 
-### `int safe_strend(const char *str, const char *suffix, int flags);`
+### `int safe_strhasprefix(const char *str, const char *prefix)`
 
-### `int safe_strhassuffix(const char *str, const char *suffix);`
+Same as above but with no flags.
 
-Check if string ends with suffix.
+### `int safe_strend(const char *str, const char *suffix, int flags)`
 
----
+Returns non-zero if `str` ends with `suffix`, using `safe_strcmp()` with `MATCH_SUFFIX`.
 
-## Search and Tokenization
+### `int safe_strhassuffix(const char *str, const char *suffix)`
 
-### `char *safe_strchrnul(const char *str, int ch, size_t maxlen);`
-
-Find character or null terminator safely.
-
-### `char *safe_strtok_r(char *str, const char *delim, char **saveptr);`
-
-Reentrant string tokenization.
+Same as above but with no flags.
 
 ---
 
-## String Analysis and Classification
+## Validation and Helpers
 
-### `int safe_strisprintable(const char *str, size_t maxlen);`
+### `char *safe_strstrip(char *str)`
 
-Check if all characters are printable ASCII.
+Trims leading and trailing whitespace from `str` in-place. Returns trimmed string.
 
-### `size_t safe_strcount(const char *str, char ch, size_t maxlen);`
+### `int safe_strisprintable(const char *str, size_t maxlen)`
 
-Count occurrences of `ch` in `str`, up to `maxlen`.
+Checks if all characters in string are printable ASCII. Returns 1 if true.
 
-### `char *safe_strstrip(char *str);`
+### `size_t safe_strcount(const char *str, char ch, size_t maxlen)`
 
-Trim leading and trailing whitespace in-place.
+Counts occurrences of `ch` in `str` up to `maxlen`.
 
----
+### `int safe_strvalid(const char *str, size_t maxlen)`
 
-## Character Helpers
-
-### `int safe_isspace(int c);`
-
-### `int safe_tolower(int c);`
-
-### `int safe_isdigit(int c);`
-
-### `int safe_ispunct(int c);`
-
-### `int safe_isalnum(int c);`
-
-Standard character classification functions.
+Returns 1 if `str` is null-terminated within `maxlen`, 0 otherwise.
 
 ---
 
-## Constants
-
-These constants are defined as flag bitmasks:
-
-```c
-#define IGNORE_CASE     0x01
-#define IGNORE_WHITESPACE 0x02
-#define IGNORE_PUNCT    0x04
-#define IGNORE_DIGITS   0x08
-#define IGNORE_SPECIAL  0x10
-#define MATCH_PREFIX    0x20
-#define MATCH_SUFFIX    0x40
-```
-
----
-
-## Example Usage
-
-```c
-char dest[128];
-safe_strncpy(dest, "Hello", sizeof(dest));
-
-if (safe_strstart("libOS", "lib", IGNORE_CASE)) {
-    printf("Starts with 'lib'\n");
-}
-
-char *tokens, *rest;
-tokens = safe_strtok_r("a,b,c", ",", &rest);
-```
-
----
-
-## Notes
-
-* Functions never invoke undefined behavior and handle all edge cases.
-* Avoid use of unsafe standard functions in kernel-level or module-level RISC OS code.
-* Maximum string lengths are bounded by `LIBOS_MAX_STR_LEN` internally.
-
----
-
-This module is essential for ensuring robustness and security in environments lacking full standard library support, such as standalone RISC OS modules.
+For more details about libOS, refer to the [libOS API documentation](./README.md).

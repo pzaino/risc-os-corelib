@@ -33,6 +33,8 @@
 extern "C" {
 #endif
 
+#define OS_MAX_PATH_LEN 256
+
 int os_path_is_absolute(const char *path);
 char *os_path_join(const char *a, const char *b, char *out, size_t maxlen);
 const char *os_path_basename(const char *path);

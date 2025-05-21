@@ -419,7 +419,7 @@ char *safe_strtok_r(char *str, const char *delim, char **saveptr) {
     return token_start;
 }
 
-
+// Safe check if a string is printable
 int safe_strisprintable(const char *str, size_t maxlen) {
     if (!str) {
         errno = EINVAL;
@@ -469,7 +469,45 @@ char *safe_strcpyz(char *dest, const char *src, size_t size) {
     return dest;
 }
 
+// Safe check if a string is valid (null-terminated within maxlen)
 int safe_strvalid(const char *str, size_t maxlen) {
     if (!str) return 0;
     return find_null(str, maxlen) > 0;
+}
+
+// Safe search for the last occurrence of a character in a string, up to maxlen characters
+const char *safe_find_last_chr(const char *str, char ch, size_t maxlen) {
+    if (!str || maxlen == 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    size_t len = safe_strnlen(str, maxlen);
+    const char *last = NULL;
+
+    for (size_t i = 0; i < len; ++i) {
+        if (str[i] == ch) {
+            last = &str[i];
+        }
+    }
+
+    return last;
+}
+
+// Safe strchr function
+char *safe_strchr(const char *str, int ch) {
+    if (!str) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    size_t len = safe_strnlen(str, LIBOS_MAX_STR_LEN);
+
+    for (size_t i = 0; i < len; ++i) {
+        if (str[i] == (char)ch) {
+            return (char *)&str[i];
+        }
+    }
+
+    return NULL;
 }

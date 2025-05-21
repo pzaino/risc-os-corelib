@@ -23,6 +23,7 @@
 
 #include "common.h"
 #include "path.h"
+#include "safe_str.h"
 
 #include <string.h>
 #include <stddef.h>
@@ -54,10 +55,19 @@ int os_realpath(const char *in, char *out, size_t size) {
     return 0;
 }
 
+// Check if a given path is absolute or relative
 int os_path_is_absolute(const char *path) {
-    return (path && path[0] == '$');
+    char abs_path[OS_MAX_PATH_LEN];
+    if (os_realpath(path, abs_path, sizeof(abs_path)) != 0) {
+        return 0; // Failed to get absolute path
+    }
+    if (safe_strcmp(path, abs_path, IGNORE_CASE) == 0) {
+        return 1; // Path is absolute
+    }
+    return 0;
 }
 
+// Join two paths with a dot (.) separator
 char *os_path_join(const char *a, const char *b, char *out, size_t maxlen) {
     if (!a || !b || !out || maxlen == 0) {
         errno = EINVAL;
@@ -75,29 +85,36 @@ char *os_path_join(const char *a, const char *b, char *out, size_t maxlen) {
     return out;
 }
 
+// Get the base name of a path (the last component after the last dot)
 const char *os_path_basename(const char *path) {
     if (!path) {
         errno = EINVAL;
         return NULL;
     }
 
-    const char *last = strrchr(path, '.');
+    size_t len = safe_strnlen(path, LIBOS_MAX_STR_LEN);
+    const char *last = safe_find_last_chr(path, '.', len);
     return last ? last + 1 : path;
 }
 
+// Get the directory name of a path (everything before the last dot)
 char *os_path_dirname(const char *path, char *out, size_t maxlen) {
     if (!path || !out || maxlen == 0) {
         errno = EINVAL;
         return NULL;
     }
 
-    const char *last = strrchr(path, '.');
+    size_t path_len = safe_strnlen(path, OS_MAX_PATH_LEN);
+    const char *last = safe_find_last_chr(path, '.', path_len);
+
     if (!last) {
+        // No dot found, return "."
         if (maxlen < 2) {
             errno = ENAMETOOLONG;
             return NULL;
         }
-        strcpy(out, ".");
+        out[0] = '.';
+        out[1] = '\0';
         return out;
     }
 
@@ -107,10 +124,11 @@ char *os_path_dirname(const char *path, char *out, size_t maxlen) {
         return NULL;
     }
 
-    memcpy(out, path, len);
+    safe_memcpy(out, path, len);
     out[len] = '\0';
     return out;
 }
+
 
 char *os_path_to_riscos(const char *unix_path, char *out, size_t maxlen) {
     if (!unix_path || !out || maxlen == 0) {
