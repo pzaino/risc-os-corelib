@@ -38,16 +38,35 @@ Retrieve system hardware information.
 
 ```c
 typedef struct {
-    int has_ioeb;
-    int has_82c710;
-    int has_lcd;
-    int chip_flags;   // Original R0 value
-    int chip_info1;   // Original R1
-    int chip_info2;   // Original R2
-    int unique_id_0;  // Original R3
-    int unique_id_1;  // Original R4
+    // Raw register values
+    int hw_word_0;
+    int hw_word_1;
+    int hw_word_2;
+    int unique_id_low;
+    int unique_id_high;
+
+    // Decoded fields (safe writable buffers)
+    char special_chip[SYS_STR_SHORT];
+    char io_controller[SYS_STR_SHORT];
+    char mem_controller[SYS_STR_SHORT];
+    char video_controller[SYS_STR_SHORT];
+    char io_chip[SYS_STR_SHORT];
+    char lcd_controller[SYS_STR_SHORT];
+    char iomd_variant[SYS_STR_SHORT];
+    char vidc_variant[SYS_STR_SHORT];
+    char hal_device[SYS_STR_LONG];
+
+    // Booleans
+    int iic_fast;
+    int idle_stops_clk;
 } os_sysinfo_t;
 ```
+
+### `int os_get_cpuid(void);`
+
+Get the CPU ID.
+
+* Returns the CPU ID as an integer.
 
 ### `int os_gethostname(char *name, size_t len);`
 
