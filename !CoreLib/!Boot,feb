@@ -1,0 +1,7 @@
+| CoreLib for RISC OS
+| by Paolo Fabio Zaino 1998-2025
+
+IconSprites <Obey$Dir>.!Sprites
+
+If "<CoreLib$Dir>" = "" Then Set CoreLib$Dir <Obey$Dir>
+Set CoreLib$Path <CoreLib$Dir>.

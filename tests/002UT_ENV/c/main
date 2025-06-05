@@ -1,7 +1,7 @@
 #ifdef __CC_NORCROFT
-#include "libOS:env.h"
+#include "CoreLib:env.h"
 #else
-#include "../../!LibOS/h/env"
+#include "../../!CoreLib/h/env"
 #endif
 
 #include "../test_lib.h"

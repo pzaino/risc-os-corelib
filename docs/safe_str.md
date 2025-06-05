@@ -1,11 +1,11 @@
-# libOS Safe String API (`safe_str`)
+# CoreLib Safe String API (`safe_str`)
 
-This document describes the secure, CLib-independent string and memory utility functions implemented in the `safe_str` module of `libOS`. All functions perform input validation and are bounded by `LIBOS_MAX_STR_LEN` to avoid overflows and undefined behavior.
+This document describes the secure, CLib-independent string and memory utility functions implemented in the `safe_str` module of `CoreLib`. All functions perform input validation and are bounded by `LIBOS_MAX_STR_LEN` to avoid overflows and undefined behavior.
 
 To use these functions, include the header:
 
 ```c
-#include <LibOS:safe_str.h>
+#include <CoreLib:safe_str.h>
 ```
 
 ---
@@ -152,4 +152,4 @@ Returns 1 if `str` is null-terminated within `maxlen`, 0 otherwise.
 
 ---
 
-For more details about libOS, refer to the [libOS API documentation](./README.md).
+For more details about CoreLib, refer to the [CoreLib API documentation](./README.md).

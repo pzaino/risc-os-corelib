@@ -1,13 +1,13 @@
-# libOS System Information API (`sys`)
+# CoreLib System Information API (`sys`)
 
-This document describes the `sys` module in `libOS`, which provides basic system information and identity queries for RISC OS. These functions offer POSIX-style wrappers around static or SWI-derived values.
+This document describes the `sys` module in `CoreLib`, which provides basic system information and identity queries for RISC OS. These functions offer POSIX-style wrappers around static or SWI-derived values.
 
 RISC OS is a single-user OS by design, so several fields are either hardcoded or simulated.
 
 To use these functions, include the header file in your code:
 
 ```c
-#include <LibOS:sys.h>
+#include <CoreLib:sys.h>
 ```
 
 ---

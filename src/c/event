@@ -1,4 +1,4 @@
-/* event.c - RISC OS EventV handler management (libOS) */
+/* event.c - RISC OS EventV handler management (CoreLib) */
 
 #include "common.h"
 #include "event.h"

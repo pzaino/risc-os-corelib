@@ -1,7 +1,7 @@
 #ifdef __CC_NORCROFT
-#include "libOS:term.h"
+#include "CoreLib:term.h"
 #else
-#include "../../!LibOS/h/term"
+#include "../../!CoreLib/h/term"
 #endif
 
 #include "../test_lib.h"

@@ -1,4 +1,4 @@
-/* byte.c - OS_Byte interface wrappers for RISC OS (libOS) */
+/* byte.c - OS_Byte interface wrappers for RISC OS (CoreLib) */
 
 #include "common.h"
 #include "byte.h"

@@ -1,6 +1,6 @@
-# Makefile for libOS Library using DDE
+# Makefile for CoreLib Library using DDE
 
-COMPONENT = libOS
+COMPONENT = CoreLib
 
 # This is a list of source/object files for the library
 OBJS = common byte env event fs heap mem module path safe_str proc service sys term time

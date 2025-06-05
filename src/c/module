@@ -1,4 +1,4 @@
-/* module.c - RISC OS module management wrappers for libOS */
+/* module.c - RISC OS module management wrappers for CoreLib */
 
 #include "common.h"
 #include "module.h"

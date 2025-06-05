@@ -1,10 +1,10 @@
 #ifdef __CC_NORCROFT
-#include "libOS:common.h"
-#include "libOS:fs.h"
-#include "libOS:fcntl.h"
+#include "CoreLib:common.h"
+#include "CoreLib:fs.h"
+#include "CoreLib:fcntl.h"
 #else
-#include "../../\!LibOS/h/common"
-#include "../../\!LibOS/h/fs"
+#include "../../\!CoreLib/h/common"
+#include "../../\!CoreLib/h/fs"
 #include <fcntl.h>
 #endif
 

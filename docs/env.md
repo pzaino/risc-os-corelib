@@ -1,13 +1,13 @@
-# libOS Environment API (`env`)
+# CoreLib Environment API (`env`)
 
-This document describes the POSIX-style environment variable API implemented in `libOS`, designed to provide safe wrappers around RISC OS SWIs for variable access and manipulation.
+This document describes the POSIX-style environment variable API implemented in `CoreLib`, designed to provide safe wrappers around RISC OS SWIs for variable access and manipulation.
 
 All functions use internal validation and map RISC OS errors to POSIX-style `errno` codes.
 
 Include it in your code using:
 
 ```c
-#include <LibOS:env.h>
+#include <CoreLib:env.h>
 ```
 
 ---
@@ -87,4 +87,4 @@ os_unsetenv("MY_VAR");
 ---
 
 For more details on the underlying SWIs, refer to the PRM section on `OS_ReadVarVal` and `OS_SetVarVal`.
-For further information on libOS check the [libOS documentation](README.md).
+For further information on CoreLib check the [CoreLib documentation](README.md).

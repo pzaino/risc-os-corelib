@@ -3,5 +3,5 @@
 
 IconSprites <Obey$Dir>.!Sprites
 
-Set LibOS$Dir <Obey$Dir>
-Set LibOS$Path <LibOS$Dir>.
+Set CoreLib$Dir <Obey$Dir>
+Set CoreLib$Path <CoreLib$Dir>.

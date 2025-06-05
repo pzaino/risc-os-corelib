@@ -1,4 +1,4 @@
-/* heap.c - Heap control wrappers for RISC OS SWIs (libOS) */
+/* heap.c - Heap control wrappers for RISC OS SWIs (CoreLib) */
 
 #include "common.h"
 #include "heap.h"

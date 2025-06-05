@@ -1,13 +1,13 @@
-# libOS Terminal I/O API (`term`)
+# CoreLib Terminal I/O API (`term`)
 
-This document describes the terminal I/O functions provided by `libOS`. These functions offer basic input/output support compatible with RISC OS's SWI calls for console interaction.
+This document describes the terminal I/O functions provided by `CoreLib`. These functions offer basic input/output support compatible with RISC OS's SWI calls for console interaction.
 
 Some functions mimic POSIX terminal behavior where possible, while others are stubs due to limitations of the RISC OS kernel.
 
 To use these functions, include the header file in your code:
 
 ```c
-#include <LibOS:term.h>
+#include <CoreLib:term.h>
 ```
 
 ---

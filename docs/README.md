@@ -1,4 +1,4 @@
-# libOS Documentation
+# CoreLib Documentation
 
 ## Table of Contents
 
@@ -14,4 +14,3 @@
   - [Safe String Handling](./safe_str.md)
 
 **Please note:** Given the current status of this project "**WORK IN PROGRESS**", please only use modules and functions described in the documentation here. When I finish to test a module I add documentation for it. If you find a module or function that is not documented here, please do not use it as it may be incomplete or buggy. I will add documentation for the rest of the modules and functions as I finish testing them.
- 

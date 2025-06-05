@@ -1,11 +1,11 @@
-# libOS Path API (`path`)
+# CoreLib Path API (`path`)
 
-This document provides reference documentation for the path manipulation API in `libOS`. These functions offer basic utilities for joining, converting, and extracting components of file paths, with special support for RISC OS path formats.
+This document provides reference documentation for the path manipulation API in `CoreLib`. These functions offer basic utilities for joining, converting, and extracting components of file paths, with special support for RISC OS path formats.
 
 To use the path functions, include the header file in your code:
 
 ```c
-#include <LibOS:path.h>
+#include <CoreLib:path.h>
 ```
 
 ---

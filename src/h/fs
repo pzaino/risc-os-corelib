@@ -2,7 +2,7 @@
 #define __LIBOS_FS_H__
 
 /*
- * libOS - POSIX-like and SWI-safe C Library for RISC OS
+ * CoreLib - POSIX-like and SWI-safe C Library for RISC OS
  *
  * File: fs.h
  * Author: Paolo Fabio Zaino
@@ -10,7 +10,7 @@
  * Distributed under: Mozilla Public License 2.0 (MPL-2.0)
  *
  * Description:
- *   This file is part of libOS, a safe and portable ANSI C99 library that
+ *   This file is part of CoreLib, a safe and portable ANSI C99 library that
  *   provides POSIX-style APIs for RISC OS. It wraps RISC OS SWIs with strict
  *   validation and aims to be CLib-independent while enabling safe development
  *   of applications, kernel modules, and system utilities.

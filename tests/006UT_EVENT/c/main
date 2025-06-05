@@ -1,8 +1,8 @@
 
 #ifdef __CC_NORCROFT
-#include "libOS:event.h"
+#include "CoreLib:event.h"
 #else
-#include "../../!LibOS/h/event"
+#include "../../!CoreLib/h/event"
 #endif
 
 #include "../test_lib.h"

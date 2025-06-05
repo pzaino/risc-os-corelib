@@ -17,12 +17,12 @@ Dir <Build$Root>.src
 IfThere @.o Then IfThere @.o.* Then Wipe @.o.* ~C ~V
 amu all_libs THROWBACK=-throwback -f MakeFileDDE
 
-IfThere @.^.!LibOS.o Then Else cdir @.^.!LibOS.o
-IfThere @.^.!LibOS.h Then Else cdir @.^.!LibOS.h
-IfThere @.o.libOS   Then copy @.o.libOS   @.^.!LibOS.o.libOS ~C N
-Ifthere @.o.libOSzm Then copy @.o.libOSzm @.^.!LibOS.o.libOSzm ~C N
-Ifthere @.h.*       Then copy @.h.* @.^.!LibOS.h.* ~C N
-IfThere @.^.!LibOS.h.kernel_stub Then wipe @.^.!LibOS.h.kernel_stub ~C F
+IfThere @.^.!CoreLib.o Then Else cdir @.^.!CoreLib.o
+IfThere @.^.!CoreLib.h Then Else cdir @.^.!CoreLib.h
+IfThere @.o.CoreLib   Then copy @.o.CoreLib   @.^.!CoreLib.o.CoreLib ~C N
+Ifthere @.o.CoreLibzm Then copy @.o.CoreLibzm @.^.!CoreLib.o.CoreLibzm ~C N
+Ifthere @.h.*       Then copy @.h.* @.^.!CoreLib.h.* ~C N
+IfThere @.^.!CoreLib.h.kernel_stub Then wipe @.^.!CoreLib.h.kernel_stub ~C F
 
 echo
 echo ---------------------

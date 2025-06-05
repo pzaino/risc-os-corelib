@@ -1,10 +1,10 @@
 # Makefile for tests
 
-COMPONENT = test_libOS
+COMPONENT = test_CoreLib
 OBJS      = main
 
 include CApp
 cflags+=-Wp+g
-LIBS = LibOS:o.libOS
+LIBS = CoreLib:o.CoreLib
 
 # Dynamic dependencies:

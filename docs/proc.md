@@ -1,13 +1,13 @@
-# libOS Process API (`proc`)
+# CoreLib Process API (`proc`)
 
-This document describes the POSIX-inspired process-related API provided by `libOS`. These wrappers offer basic process and command execution support for RISC OS. Some functions are stubbed or partially implemented due to architectural limitations.
+This document describes the POSIX-inspired process-related API provided by `CoreLib`. These wrappers offer basic process and command execution support for RISC OS. Some functions are stubbed or partially implemented due to architectural limitations.
 
 All functions perform parameter validation and map RISC OS errors to standard `errno` values.
 
 Include it in your code using:
 
 ```c
-#include <LibOS:proc.h>
+#include <CoreLib:proc.h>
 ```
 
 ---

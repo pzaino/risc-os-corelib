@@ -1,4 +1,4 @@
-/* mem.c - Memory management wrappers for RISC OS SWIs (libOS) */
+/* mem.c - Memory management wrappers for RISC OS SWIs (CoreLib) */
 
 #include "common.h"
 #include "mem.h"

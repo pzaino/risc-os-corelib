@@ -4,8 +4,8 @@ WimpSlot -min 2048k
 amu clean -f MakeFileDDE
 stripdepnd MakeFileDDE
 
-wipe @.^.!LibOS.h.* ~C F
-wipe @.^.!LibOS.o.* ~C F
+wipe @.^.!CoreLib.h.* ~C F
+wipe @.^.!CoreLib.o.* ~C F
 
 IfThere ^.tests Then Dir ^.tests
 |IfThere ^.tests.MakefileDDE Then /CleanTests

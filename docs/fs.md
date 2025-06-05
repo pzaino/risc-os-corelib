@@ -1,11 +1,11 @@
-# libOS File System API (`fs`)
+# CoreLib File System API (`fs`)
 
-This document describes the POSIX-like file system API exposed by `libOS`, a C99 library for RISC OS. All functions are prefixed with `os_` and operate with internal argument validation and SWI-level error handling.
+This document describes the POSIX-like file system API exposed by `CoreLib`, a C99 library for RISC OS. All functions are prefixed with `os_` and operate with internal argument validation and SWI-level error handling.
 
 Include it in your code using:
 
 ```c
-#include <LibOS:fs.h>
+#include <CoreLib:fs.h>
 ```
 
 ---

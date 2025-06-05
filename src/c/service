@@ -1,4 +1,4 @@
-/* service.c - Wrapper for service call interactions in RISC OS (libOS) */
+/* service.c - Wrapper for service call interactions in RISC OS (CoreLib) */
 
 #include "common.h"
 #include "service.h"

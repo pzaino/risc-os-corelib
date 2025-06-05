@@ -1,7 +1,7 @@
 #ifdef __CC_NORCROFT
-#include "libOS:path.h"
+#include "CoreLib:path.h"
 #else
-#include "../../!LibOS/h/path"
+#include "../../!CoreLib/h/path"
 #endif
 
 #include "../test_lib.h"

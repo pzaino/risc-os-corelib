@@ -1,7 +1,7 @@
 #ifdef __CC_NORCROFT
-#include "libOS:safe_str.h"
+#include "CoreLib:safe_str.h"
 #else
-#include "../../!LibOS/h/safe_str.h"
+#include "../../!CoreLib/h/safe_str.h"
 #endif
 
 #include "../test_lib.h"
