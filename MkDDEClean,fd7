@@ -8,6 +8,7 @@ wipe @.^.!CoreLib.h.* ~C F
 wipe @.^.!CoreLib.o.* ~C F
 
 IfThere ^.tests Then Dir ^.tests
-|IfThere ^.tests.MakefileDDE Then /CleanTests
-IfThere ^.tests.MakefileDDE Then amu clean -f MakefileDDE
+IfThere ^.tests.MakefileDDE Then /CleanTests
+IfThere ^.Tests.cleanup Then Wipe ^.Tests.cleanup ~C F
+
 

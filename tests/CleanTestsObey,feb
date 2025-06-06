@@ -1,4 +1,0 @@
-|
-Set Clean$Dir <Obey$Dir>
-X Repeat Run <Clean$Dir> -Type Obey
-UnSet Clean$Dir

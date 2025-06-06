@@ -8,3 +8,10 @@ cflags+=-Wp+g
 LIBS = CoreLib:o.CoreLib
 
 # Dynamic dependencies:
+o.main:	c.main
+o.main:	CoreLib:h.path
+o.main:	CoreLib:h.common
+o.main:	C:h.kernel
+o.main:	C:h.swis
+o.main:	^.h.test_lib
+o.main:	h.main
